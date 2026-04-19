@@ -6,6 +6,12 @@ import type {
   MapBuilding,
   VenueMapProfile,
 } from "../map/types/map";
+import LayoutGrid, { type PlacedItem } from "../components/LayoutGrid";
+import {
+  BUILD_ITEMS,
+  BUILD_ITEM_MAP,
+  type BuildItemId,
+} from "../data/buildItems";
 
 type BuildPageProps = {
   selectedVenue: Venue | null;
@@ -14,57 +20,16 @@ type BuildPageProps = {
 
 type BuildPhase = "site-selection" | "layout-building";
 
-type BuildItem = {
-  id: string;
-  name: string;
-  cost: number;
-  description: string;
-};
-
-const BUILD_ITEMS: BuildItem[] = [
-  {
-    id: "standard-speaker",
-    name: "Standard Speaker",
-    cost: 200,
-    description: "Balanced sound output for general audience coverage.",
-  },
-  {
-    id: "directional-speaker",
-    name: "Directional Speaker",
-    cost: 300,
-    description: "Focus sound toward one direction with less side leakage.",
-  },
-  {
-    id: "eco-speaker",
-    name: "Eco Speaker",
-    cost: 120,
-    description: "Lower noise and lower cost for sensitive areas.",
-  },
-  {
-    id: "basic-barrier",
-    name: "Basic Barrier",
-    cost: 150,
-    description: "Reduces sound behind the barrier.",
-  },
-  {
-    id: "premium-wall",
-    name: "Premium Acoustic Wall",
-    cost: 280,
-    description: "Strong protection for hospitals, libraries, and schools.",
-  },
-  {
-    id: "smart-amplifier",
-    name: "Smart Amplifier",
-    cost: 260,
-    description: "Improves sound efficiency while reducing wasted spillover.",
-  },
-];
+const GRID_COLUMNS = 14;
+const GRID_ROWS = 9;
+const CELL_SIZE = 44;
 
 const BuildPage: React.FC<BuildPageProps> = ({ selectedVenue, onBack }) => {
   const [phase, setPhase] = useState<BuildPhase>("site-selection");
   const [selectedSite, setSelectedSite] = useState<CandidateSite | null>(null);
   const [nearbyBuildings, setNearbyBuildings] = useState<MapBuilding[]>([]);
-  const [selectedTool, setSelectedTool] = useState<string | null>(null);
+  const [draggedItemId, setDraggedItemId] = useState<BuildItemId | null>(null);
+  const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
 
   const venueProfile = useMemo<VenueMapProfile>(() => {
     if (!selectedVenue) return "downtown";
@@ -72,6 +37,67 @@ const BuildPage: React.FC<BuildPageProps> = ({ selectedVenue, onBack }) => {
     if (selectedVenue.id === "edge-district-lot") return "edge-district";
     return "downtown";
   }, [selectedVenue]);
+
+  const totalBudget = selectedVenue?.budget ?? 0;
+
+  const usedBudget = placedItems.reduce((sum, placed) => {
+    return sum + BUILD_ITEM_MAP[placed.itemId].cost;
+  }, 0);
+
+  const remainingBudget = totalBudget - usedBudget;
+const stagePlaced = placedItems.some((item) => item.itemId === "stage");
+
+const speakerPlaced = placedItems.some((item) =>
+  item.itemId === "standard-speaker" ||
+  item.itemId === "directional-speaker" ||
+  item.itemId === "eco-speaker"
+);
+
+const canContinueToNextStep = stagePlaced && speakerPlaced;
+
+  const canPlaceItemAt = (itemId: BuildItemId, col: number, row: number) => {
+    const def = BUILD_ITEM_MAP[itemId];
+
+    if (col + def.width > GRID_COLUMNS) return false;
+    if (row + def.height > GRID_ROWS) return false;
+
+    if (def.unique) {
+      const alreadyPlaced = placedItems.some((p) => p.itemId === itemId);
+      if (alreadyPlaced) return false;
+    }
+
+    if (remainingBudget < def.cost) return false;
+
+    for (const placed of placedItems) {
+      const existing = BUILD_ITEM_MAP[placed.itemId];
+
+      const overlap =
+        col < placed.col + existing.width &&
+        col + def.width > placed.col &&
+        row < placed.row + existing.height &&
+        row + def.height > placed.row;
+
+      if (overlap) return false;
+    }
+
+    return true;
+  };
+
+  const handlePlaceItem = (itemId: BuildItemId, col: number, row: number) => {
+    if (!canPlaceItemAt(itemId, col, row)) {
+      alert("This item cannot be placed here.");
+      return;
+    }
+
+    const newItem: PlacedItem = {
+      uid: `${itemId}-${Date.now()}-${Math.random()}`,
+      itemId,
+      col,
+      row,
+    };
+
+    setPlacedItems((prev) => [...prev, newItem]);
+  };
 
   if (!selectedVenue) {
     return (
@@ -132,7 +158,7 @@ const BuildPage: React.FC<BuildPageProps> = ({ selectedVenue, onBack }) => {
 
       {phase === "layout-building" && (
         <div className="layout-setup-page">
-          <div className="layout-setup-grid">
+          <div className="layout-setup-grid layout-setup-grid-full">
             <aside className="layout-left-panel">
               <h3>NEARBY BUILDINGS</h3>
 
@@ -166,35 +192,75 @@ const BuildPage: React.FC<BuildPageProps> = ({ selectedVenue, onBack }) => {
               </div>
             </aside>
 
-            <main className="layout-center-panel">
-              <div className="layout-center-placeholder">
-                <h2>SELECTED CONCERT AREA</h2>
-                <p>
-                  This screen will be used to place speakers, barriers, and
-                  support items around the selected concert center.
-                </p>
-                <div className="layout-center-dot" />
-              </div>
+            <main className="layout-center-panel layout-center-panel-full">
+              <LayoutGrid
+                columns={GRID_COLUMNS}
+                rows={GRID_ROWS}
+                cellSize={CELL_SIZE}
+                placedItems={placedItems}
+                remainingBudget={remainingBudget}
+                draggedItemId={draggedItemId}
+                canPlaceItemAt={canPlaceItemAt}
+                onPlaceItem={handlePlaceItem}
+              />
             </main>
 
             <aside className="layout-right-panel-static">
               <h3>ITEMS</h3>
 
+              <div className="layout-budget-box">
+                <div><b>Total:</b> ${totalBudget}</div>
+                <div><b>Used:</b> ${usedBudget}</div>
+                <div><b>Left:</b> ${remainingBudget}</div>
+              </div>
+              <div className="layout-rules-box">
+  <div>
+    <b>Stage:</b> {stagePlaced ? "Placed" : "Required (1 free)"}
+  </div>
+  <div>
+    <b>Speaker:</b> {speakerPlaced ? "Placed" : "At least 1 required"}
+  </div>
+</div>
+
               <div className="layout-item-list">
                 {BUILD_ITEMS.map((item) => (
-                  <button
+                  <div
                     key={item.id}
-                    className={`layout-item-card ${
-                      selectedTool === item.id ? "active" : ""
+                    className={`layout-item-card draggable-item ${
+                      draggedItemId === item.id ? "active" : ""
                     }`}
-                    onClick={() => setSelectedTool(item.id)}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", item.id);
+                      setDraggedItemId(item.id);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedItemId(null);
+                    }}
                   >
                     <div className="layout-item-top">
                       <span className="layout-item-name">{item.name}</span>
                       <span className="layout-item-cost">${item.cost}</span>
                     </div>
+
+                    <div className="layout-item-asset-preview">
+                      {item.icon ? (
+                        <img
+                          src={item.icon}
+                          alt={item.name}
+                          className="layout-item-icon"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      ) : null}
+                    </div>
+
                     <p>{item.description}</p>
-                  </button>
+                    <div className="layout-item-size">
+                      Size: {item.width}x{item.height}
+                    </div>
+                  </div>
                 ))}
               </div>
             </aside>
@@ -208,9 +274,25 @@ const BuildPage: React.FC<BuildPageProps> = ({ selectedVenue, onBack }) => {
               BACK TO MAP
             </button>
 
-            <button className="pixel-primary-btn">
-              CONTINUE
-            </button>
+            <button
+  className="pixel-primary-btn"
+  disabled={!canContinueToNextStep}
+  onClick={() => {
+    if (!stagePlaced) {
+      alert("You must place exactly one Concert Stage.");
+      return;
+    }
+
+    if (!speakerPlaced) {
+      alert("You must place at least one speaker.");
+      return;
+    }
+
+    alert("Next step will come here.");
+  }}
+>
+  CONTINUE
+</button>
           </div>
         </div>
       )}

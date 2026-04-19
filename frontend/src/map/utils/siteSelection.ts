@@ -28,8 +28,8 @@ export function createCandidateSite(
   radius: number
 ): CandidateSite {
   return {
-    x,
-    y,
+    x: Math.round(x),
+    y: Math.round(y),
     radius,
     maxAllowedDb: previewData.maxDb,
     limitingBuilding: previewData.limitingBuilding,

@@ -118,10 +118,27 @@ export class Renderer {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.fillStyle = "rgba(80,255,180,0.95)";
-    ctx.beginPath();
-    ctx.arc(x, y, 18 / camera.zoom, 0, Math.PI * 2);
-    ctx.fill();
+ctx.fillStyle = "rgba(80,255,180,0.95)";
+ctx.beginPath();
+ctx.arc(x, y, 28 / camera.zoom, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.strokeStyle = "#000";
+ctx.lineWidth = 3 / camera.zoom;
+ctx.stroke();
+
+// merkez artı işareti
+ctx.strokeStyle = "#000";
+ctx.lineWidth = 2 / camera.zoom;
+ctx.beginPath();
+ctx.moveTo(x - 18 / camera.zoom, y);
+ctx.lineTo(x + 18 / camera.zoom, y);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(x, y - 18 / camera.zoom);
+ctx.lineTo(x, y + 18 / camera.zoom);
+ctx.stroke();
 
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 2 / camera.zoom;

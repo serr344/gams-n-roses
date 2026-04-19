@@ -1,7 +1,11 @@
 import React, { useMemo, useState } from "react";
 import type { Venue } from "../App";
 import MapCanvas from "../map/components/MapCanvas";
-import type { CandidateSite, VenueMapProfile } from "../map/types/map";
+import type {
+  CandidateSite,
+  MapBuilding,
+  VenueMapProfile,
+} from "../map/types/map";
 
 type BuildPageProps = {
   selectedVenue: Venue | null;
@@ -10,13 +14,60 @@ type BuildPageProps = {
 
 type BuildPhase = "site-selection" | "layout-building";
 
+type BuildItem = {
+  id: string;
+  name: string;
+  cost: number;
+  description: string;
+};
+
+const BUILD_ITEMS: BuildItem[] = [
+  {
+    id: "standard-speaker",
+    name: "Standard Speaker",
+    cost: 200,
+    description: "Balanced sound output for general audience coverage.",
+  },
+  {
+    id: "directional-speaker",
+    name: "Directional Speaker",
+    cost: 300,
+    description: "Focus sound toward one direction with less side leakage.",
+  },
+  {
+    id: "eco-speaker",
+    name: "Eco Speaker",
+    cost: 120,
+    description: "Lower noise and lower cost for sensitive areas.",
+  },
+  {
+    id: "basic-barrier",
+    name: "Basic Barrier",
+    cost: 150,
+    description: "Reduces sound behind the barrier.",
+  },
+  {
+    id: "premium-wall",
+    name: "Premium Acoustic Wall",
+    cost: 280,
+    description: "Strong protection for hospitals, libraries, and schools.",
+  },
+  {
+    id: "smart-amplifier",
+    name: "Smart Amplifier",
+    cost: 260,
+    description: "Improves sound efficiency while reducing wasted spillover.",
+  },
+];
+
 const BuildPage: React.FC<BuildPageProps> = ({ selectedVenue, onBack }) => {
   const [phase, setPhase] = useState<BuildPhase>("site-selection");
   const [selectedSite, setSelectedSite] = useState<CandidateSite | null>(null);
+  const [nearbyBuildings, setNearbyBuildings] = useState<MapBuilding[]>([]);
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
   const venueProfile = useMemo<VenueMapProfile>(() => {
     if (!selectedVenue) return "downtown";
-
     if (selectedVenue.id === "riverside-park") return "riverside";
     if (selectedVenue.id === "edge-district-lot") return "edge-district";
     return "downtown";
@@ -36,13 +87,16 @@ const BuildPage: React.FC<BuildPageProps> = ({ selectedVenue, onBack }) => {
   }
 
   return (
-    <div className="build-page build-map-page">
+    <div className="build-page">
       {phase === "site-selection" && (
         <>
           <MapCanvas
             venueProfile={venueProfile}
             selectedSite={selectedSite}
+            mode="site-selection"
+            selectedTool={null}
             onSiteSelected={setSelectedSite}
+            onNearbyBuildingsChange={setNearbyBuildings}
           />
 
           <div className="build-top-info">
@@ -70,33 +124,93 @@ const BuildPage: React.FC<BuildPageProps> = ({ selectedVenue, onBack }) => {
               disabled={!selectedSite}
               onClick={() => setPhase("layout-building")}
             >
-              CONTINUE TO BUILDING
+              SELECT THIS SPOT
             </button>
           </div>
         </>
       )}
 
       {phase === "layout-building" && (
-        <div className="layout-phase-placeholder">
-          <div className="layout-phase-card">
-            <p className="build-step-tag">STEP 3</p>
-            <h1>LAYOUT BUILDING PHASE</h1>
-            <p>
-              Selected concert point: X:{selectedSite?.x}, Y:{selectedSite?.y}
-            </p>
-            <p>
-              This is where we will place speakers, barriers, support items,
-              and start the real concert layout building.
-            </p>
+        <div className="layout-setup-page">
+          <div className="layout-setup-grid">
+            <aside className="layout-left-panel">
+              <h3>NEARBY BUILDINGS</h3>
 
-            <div className="layout-phase-actions">
-              <button
-                className="pixel-secondary-btn"
-                onClick={() => setPhase("site-selection")}
-              >
-                BACK TO SITE SELECTION
-              </button>
-            </div>
+              <div className="nearby-building-list">
+                {nearbyBuildings.length === 0 ? (
+                  <p className="layout-empty-text">No nearby buildings detected.</p>
+                ) : (
+                  nearbyBuildings.slice(0, 12).map((building) => {
+                    const dist = selectedSite
+                      ? Math.round(
+                          Math.hypot(
+                            building.centerX - selectedSite.x,
+                            building.centerY - selectedSite.y
+                          )
+                        )
+                      : 0;
+
+                    return (
+                      <div className="nearby-building-card" key={building.id}>
+                        <div className="nearby-building-name">{building.type}</div>
+                        <div className="nearby-building-db">
+                          Tolerance: {building.db} dB
+                        </div>
+                        <div className="nearby-building-distance">
+                          Distance to center: {dist} m
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </aside>
+
+            <main className="layout-center-panel">
+              <div className="layout-center-placeholder">
+                <h2>SELECTED CONCERT AREA</h2>
+                <p>
+                  This screen will be used to place speakers, barriers, and
+                  support items around the selected concert center.
+                </p>
+                <div className="layout-center-dot" />
+              </div>
+            </main>
+
+            <aside className="layout-right-panel-static">
+              <h3>ITEMS</h3>
+
+              <div className="layout-item-list">
+                {BUILD_ITEMS.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`layout-item-card ${
+                      selectedTool === item.id ? "active" : ""
+                    }`}
+                    onClick={() => setSelectedTool(item.id)}
+                  >
+                    <div className="layout-item-top">
+                      <span className="layout-item-name">{item.name}</span>
+                      <span className="layout-item-cost">${item.cost}</span>
+                    </div>
+                    <p>{item.description}</p>
+                  </button>
+                ))}
+              </div>
+            </aside>
+          </div>
+
+          <div className="layout-static-bottom-actions">
+            <button
+              className="pixel-secondary-btn"
+              onClick={() => setPhase("site-selection")}
+            >
+              BACK TO MAP
+            </button>
+
+            <button className="pixel-primary-btn">
+              CONTINUE
+            </button>
           </div>
         </div>
       )}

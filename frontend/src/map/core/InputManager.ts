@@ -143,32 +143,35 @@ export class InputManager {
       { passive: false }
     );
 
-    this.canvas.addEventListener("click", (e) => {
-      if (this.hasDragged) return;
+this.canvas.addEventListener("click", (e) => {
+  if (this.hasDragged) return;
 
-      const worldPos = this.camera.screenToWorld(e.clientX, e.clientY);
+  const worldPos = this.camera.screenToWorld(e.clientX, e.clientY);
 
-      const building = this.cityModel.getBuildingAt(worldPos.x, worldPos.y);
-      if (building) return;
+  const building = this.cityModel.getBuildingAt(worldPos.x, worldPos.y);
+  if (building) return;
 
-      if (!isSelectableEmptySite(this.cityModel, worldPos.x, worldPos.y)) return;
+  if (!isSelectableEmptySite(this.cityModel, worldPos.x, worldPos.y)) return;
 
-      const previewData = runOptimizationPreview(
-        this.cityModel,
-        worldPos.x,
-        worldPos.y,
-        CONFIG.OPTIM_RADIUS
-      );
+  const previewData = runOptimizationPreview(
+    this.cityModel,
+    worldPos.x,
+    worldPos.y,
+    CONFIG.OPTIM_RADIUS
+  );
 
-      const site = createCandidateSite(
-        worldPos.x,
-        worldPos.y,
-        previewData,
-        CONFIG.OPTIM_RADIUS
-      );
+  // Seçilen yerin kendisini sakla
+  const site = createCandidateSite(
+    worldPos.x,
+    worldPos.y,
+    previewData,
+    CONFIG.OPTIM_RADIUS
+  );
 
-      this.callbacks.onSiteSelected(site);
-      this.callbacks.onRequestDraw();
-    });
+  console.log("Selected site:", site);
+
+  this.callbacks.onSiteSelected(site);
+  this.callbacks.onRequestDraw();
+});
   }
 }

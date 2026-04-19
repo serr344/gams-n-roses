@@ -53,9 +53,9 @@ const VenueSelectionPage: React.FC<VenueSelectionPageProps> = ({
           <p className="venue-step-tag">STEP 1</p>
           <h1 className="venue-title">SELECT YOUR CONCERT VENUE</h1>
           <p className="venue-description">
-            Pick the district where your concert will happen. Every location
-            changes your crowd size, budget, and nearby noise-sensitive buildings.
-          </p>
+  Choose the district for your concert. Each venue offers a different
+  budget, audience size, and surrounding noise constraints.
+</p>
         </section>
 
         <section className="venue-grid">
@@ -96,7 +96,7 @@ const VenueSelectionPage: React.FC<VenueSelectionPageProps> = ({
           </button>
 
           <button className="pixel-primary-btn" onClick={onContinue}>
-            START BUILDING
+            SELECT
           </button>
         </div>
       </main>

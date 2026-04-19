@@ -11,16 +11,26 @@ import type {
   VenueMapProfile,
 } from "../types/map";
 
+type MapCanvasMode = "site-selection" | "layout-building";
+
 type MapCanvasProps = {
   venueProfile: VenueMapProfile;
   onSiteSelected: (site: CandidateSite) => void;
   selectedSite: CandidateSite | null;
+  mode: MapCanvasMode;
+  selectedTool: string | null;
+  onNearbyBuildingsChange: (buildings: MapBuilding[]) => void;
 };
+
+const LAYOUT_BUILD_ZOOM = 4.2;
 
 const MapCanvas: React.FC<MapCanvasProps> = ({
   venueProfile,
   onSiteSelected,
   selectedSite,
+  mode,
+  selectedTool,
+  onNearbyBuildingsChange,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -32,6 +42,7 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
   const selectedSiteRef = useRef<CandidateSite | null>(null);
   const hoveredBuildingRef = useRef<MapBuilding | null>(null);
   const optimPreviewRef = useRef<OptimPreviewState>(null);
+  const modeRef = useRef<MapCanvasMode>("site-selection");
 
   const [hoverInfo, setHoverInfo] = useState<HoverInfo>({
     building: null,
@@ -40,11 +51,13 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     worldPos: null,
   });
 
-  const [, forceUiRefresh] = useState(0);
-
   useEffect(() => {
     selectedSiteRef.current = selectedSite;
   }, [selectedSite]);
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -87,6 +100,8 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
         optimPreviewRef.current = preview;
       },
       onSiteSelected: (site) => {
+        if (modeRef.current !== "site-selection") return;
+
         selectedSiteRef.current = site;
         onSiteSelected(site);
       },
@@ -117,38 +132,83 @@ const MapCanvas: React.FC<MapCanvasProps> = ({
     };
   }, [venueProfile, onSiteSelected]);
 
+useEffect(() => {
+  if (
+    mode === "layout-building" &&
+    selectedSite &&
+    cameraRef.current &&
+    rendererRef.current
+  ) {
+    const camera = cameraRef.current;
+    const canvas = rendererRef.current.canvas;
+
+    const rightPanelWidth = 360;
+
+    // Sağ panel hariç kalan görünür alanın merkezi
+    const visibleAreaWidth = canvas.width - rightPanelWidth;
+    const visibleCenterX = visibleAreaWidth / 2;
+    const visibleCenterY = canvas.height / 2;
+
+    camera.zoom = LAYOUT_BUILD_ZOOM;
+
+    // Seçilen noktanın TAM KENDİSİ görünür merkeze gelsin
+    camera.x = visibleCenterX - selectedSite.x * camera.zoom;
+    camera.y = visibleCenterY - selectedSite.y * camera.zoom;
+  }
+}, [mode, selectedSite]);
+
   useEffect(() => {
-    forceUiRefresh((v) => v + 1);
-  }, [selectedSite]);
+    if (!cityModelRef.current || !selectedSite) {
+      onNearbyBuildingsChange([]);
+      return;
+    }
+
+    const nearby = cityModelRef.current.buildings.filter((b) => {
+      const d = Math.hypot(b.centerX - selectedSite.x, b.centerY - selectedSite.y);
+      return d <= selectedSite.radius;
+    });
+
+    nearby.sort((a, b) => {
+      const da = Math.hypot(a.centerX - selectedSite.x, a.centerY - selectedSite.y);
+      const db = Math.hypot(b.centerX - selectedSite.x, b.centerY - selectedSite.y);
+      return da - db;
+    });
+
+    onNearbyBuildingsChange(nearby);
+  }, [selectedSite, onNearbyBuildingsChange]);
 
   return (
-    <div className="map-canvas-shell">
+    <div className={`map-canvas-shell ${mode === "layout-building" ? "layout-mode" : ""}`}>
       <canvas ref={canvasRef} className="map-canvas" />
 
-      <div className="map-ui-panel">
-        <h3>GAMS N&apos; Roses</h3>
-        <p>🎸 <b>Step 1:</b> Choose the concert area</p>
-        <p>🔍 <b>Zoom:</b> Mouse wheel</p>
-        <p>🖐️ <b>Move:</b> Click and drag</p>
-        <p>📍 <b>Select:</b> Click an empty area</p>
-      </div>
+      {mode === "site-selection" && (
+        <>
+          <div className="map-ui-panel">
+            <h3>GAMS N&apos; Roses</h3>
+            <p>🎸 <b>Step 1:</b> Choose the concert area</p>
+            <p>🔍 <b>Zoom:</b> Mouse wheel</p>
+            <p>🖐️ <b>Move:</b> Click and drag</p>
+            <p>📍 <b>Select:</b> Click an empty area</p>
+          </div>
 
-      {selectedSite && (
-        <div className="map-status-panel">
-          <h3>✓ READY FOR NEXT STEP</h3>
-          <p><b>Selected Point:</b> X:{selectedSite.x}, Y:{selectedSite.y}</p>
-          <p><b>Max Allowed:</b> {selectedSite.maxAllowedDb} dB</p>
-          <p>
-            <b>Limiting Building:</b>{" "}
-            {selectedSite.limitingBuilding?.type ?? "None"}
-          </p>
-          <p className="map-status-note">
-            You can now continue to the layout-building phase.
-          </p>
-        </div>
+          {selectedSite && (
+            <div className="map-status-panel">
+              <h3>✓ READY FOR NEXT STEP</h3>
+              <p><b>Selected Point:</b> X:{selectedSite.x}, Y:{selectedSite.y}</p>
+              <p><b>Max Allowed:</b> {selectedSite.maxAllowedDb} dB</p>
+              <p>
+                <b>Limiting Building:</b>{" "}
+                {selectedSite.limitingBuilding?.type ?? "None"}
+              </p>
+              <p className="map-status-note">
+                You can now continue to the layout-building phase.
+              </p>
+            </div>
+          )}
+        </>
       )}
 
-      {hoverInfo.building && (
+      {hoverInfo.building && mode === "site-selection" && (
         <div
           className="map-tooltip"
           style={{

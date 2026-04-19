@@ -20,7 +20,6 @@ export class Camera {
   handleZoom(deltaY: number, mouseX: number, mouseY: number) {
     const zoomFactor = -deltaY * 0.002;
     let newZoom = this.zoom * Math.exp(zoomFactor);
-
     newZoom = Math.max(0.15, Math.min(newZoom, 40));
 
     const worldX = (mouseX - this.x) / this.zoom;

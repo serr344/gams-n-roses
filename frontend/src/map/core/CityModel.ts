@@ -1,31 +1,41 @@
 import { CONFIG } from "./config";
-import type {
-  BuildingTypeConfig,
-  MapBuilding,
-  RoadRect,
-  VenueMapProfile,
-} from "../types/map";
+import type { BuildingTypeConfig, MapBuilding, RoadRect } from "../types/map";
+
+type ReservedZone = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
 
 export class CityModel {
   grid: (MapBuilding | null)[][];
   buildings: MapBuilding[];
-  roads: RoadRect[];
+  roads: (RoadRect & { isHoriz?: boolean })[];
   roadGrid: boolean[][];
-  venueProfile: VenueMapProfile;
+  reservedZones: ReservedZone[];
 
-  constructor(venueProfile: VenueMapProfile = "downtown") {
-    this.venueProfile = venueProfile;
-
+  constructor() {
     this.grid = new Array(CONFIG.GRID_SIZE)
       .fill(null)
       .map(() => new Array(CONFIG.GRID_SIZE).fill(null));
 
     this.buildings = [];
     this.roads = [];
-
     this.roadGrid = new Array(CONFIG.GRID_SIZE)
       .fill(false)
       .map(() => new Array(CONFIG.GRID_SIZE).fill(false));
+
+    this.reservedZones = [];
+    const numReservedZones = 6 + Math.floor(Math.random() * 7);
+
+    for (let i = 0; i < numReservedZones; i++) {
+      const w = 300 + Math.floor(Math.random() * 800);
+      const h = 300 + Math.floor(Math.random() * 800);
+      const x = Math.floor(Math.random() * (CONFIG.GRID_SIZE - w));
+      const y = Math.floor(Math.random() * (CONFIG.GRID_SIZE - h));
+      this.reservedZones.push({ x, y, w, h });
+    }
 
     this.generateRoads();
     this.generateCity();
@@ -40,23 +50,17 @@ export class CityModel {
       isHoriz: boolean;
     }> = [];
 
-    const addRoad = (
-      x: number,
-      y: number,
-      w: number,
-      h: number,
-      isHoriz: boolean
-    ) => {
-      this.roads.push({ x, y, w, h });
+    const addRoad = (x: number, y: number, w: number, h: number, isHoriz: boolean) => {
+      x = Math.floor(x);
+      y = Math.floor(y);
+      w = Math.max(1, Math.floor(w));
+      h = Math.max(1, Math.floor(h));
+
+      this.roads.push({ x, y, w, h, isHoriz });
 
       for (let i = x; i < x + w; i++) {
         for (let j = y; j < y + h; j++) {
-          if (
-            i >= 0 &&
-            i < CONFIG.GRID_SIZE &&
-            j >= 0 &&
-            j < CONFIG.GRID_SIZE
-          ) {
+          if (i >= 0 && i < CONFIG.GRID_SIZE && j >= 0 && j < CONFIG.GRID_SIZE) {
             this.roadGrid[i][j] = true;
           }
         }
@@ -65,248 +69,391 @@ export class CityModel {
       branches.push({ x, y, w, h, isHoriz });
     };
 
-    const center = Math.floor(CONFIG.GRID_SIZE / 2);
+    const GS = CONFIG.GRID_SIZE;
+    const center = Math.floor(GS / 2);
 
-    addRoad(0, center - 10, CONFIG.GRID_SIZE, 20, true);
-    addRoad(center - 10, 0, 20, CONFIG.GRID_SIZE, false);
+    const addRadialArtery = (endX: number, endY: number) => {
+      let cx = center;
+      let cy = center;
+      const steps = 13;
+      const thick = 22 + Math.floor(Math.random() * 6);
 
-    for (let i = 0; i < 1400; i++) {
+      for (let s = 0; s < steps; s++) {
+        const targetX = Math.floor(
+          center + ((endX - center) * (s + 1)) / steps + (Math.random() - 0.5) * 300
+        );
+        const targetY = Math.floor(
+          center + ((endY - center) * (s + 1)) / steps + (Math.random() - 0.5) * 300
+        );
+
+        if (Math.abs(targetX - cx) > Math.abs(targetY - cy)) {
+          const rw = targetX - cx;
+          if (Math.abs(rw) > 0) {
+            addRoad(rw > 0 ? cx : cx + rw, cy - Math.floor(thick / 2), Math.abs(rw), thick, true);
+          }
+          cx = targetX;
+        } else {
+          const rh = targetY - cy;
+          if (Math.abs(rh) > 0) {
+            addRoad(cx - Math.floor(thick / 2), rh > 0 ? cy : cy + rh, thick, Math.abs(rh), false);
+          }
+          cy = targetY;
+        }
+      }
+    };
+
+    addRadialArtery(100, 100);
+    addRadialArtery(GS - 100, 100);
+    addRadialArtery(100, GS - 100);
+    addRadialArtery(GS - 100, GS - 100);
+
+    for (let a = 0; a < 3; a++) {
+      const isH = Math.random() > 0.5;
+      const offset = Math.floor((Math.random() - 0.5) * GS * 0.7);
+      const thick = 14 + Math.floor(Math.random() * 8);
+      const segCount = 5 + Math.floor(Math.random() * 4);
+
+      if (isH) {
+        let ay = center + offset;
+        ay = Math.max(80, Math.min(GS - 80, ay));
+        const sw = Math.floor(GS / segCount);
+
+        for (let s = 0; s < segCount; s++) {
+          const x = s * sw;
+          const w = s === segCount - 1 ? GS - x : sw + 10;
+          addRoad(x, ay, w, thick, true);
+          ay += Math.floor((Math.random() - 0.5) * 150);
+          ay = Math.max(80, Math.min(GS - 80, ay));
+        }
+      } else {
+        let ax = center + offset;
+        ax = Math.max(80, Math.min(GS - 80, ax));
+        const sh = Math.floor(GS / segCount);
+
+        for (let s = 0; s < segCount; s++) {
+          const y = s * sh;
+          const h = s === segCount - 1 ? GS - y : sh + 10;
+          addRoad(ax, y, thick, h, false);
+          ax += Math.floor((Math.random() - 0.5) * 150);
+          ax = Math.max(80, Math.min(GS - 80, ax));
+        }
+      }
+    }
+
+    for (let i = 0; i < 4050; i++) {
       const parent = branches[Math.floor(Math.random() * branches.length)];
-      const targetLength = Math.floor(Math.random() * 400) + 100;
+      const targetLength = Math.floor(Math.random() * 700) + 200;
       const dir = Math.random() > 0.5 ? 1 : -1;
       const roadThick = 10;
-      const gap = 110;
-
+      const gap = 160;
       let startX: number;
       let startY: number;
       let actualLength = 0;
 
+      if (parent.isHoriz && parent.w <= roadThick) continue;
+      if (!parent.isHoriz && parent.h <= roadThick) continue;
+
       if (parent.isHoriz) {
-        startX =
-          parent.x +
-          Math.floor(Math.random() * ((parent.w - roadThick) / 10)) * 10;
+        startX = parent.x + Math.floor(Math.random() * ((parent.w - roadThick) / 10)) * 10;
         startY = dir === 1 ? parent.y + parent.h : parent.y - roadThick;
 
         while (actualLength < targetLength) {
           const checkY = dir === 1 ? startY + actualLength : startY - actualLength;
+          const checkX = startX + (Math.random() - 0.5) * actualLength * 0.08;
 
-          if (checkY < 0 || checkY + roadThick >= CONFIG.GRID_SIZE) break;
+          if (checkY < 0 || checkY + roadThick >= GS || checkX < 0 || checkX + roadThick >= GS) break;
 
           let collision = false;
-
-          for (let dx = -gap; dx < roadThick + gap; dx++) {
-            const nx = startX + dx;
-
-            if (nx >= 0 && nx < CONFIG.GRID_SIZE) {
-              if (this.roadGrid[nx][checkY]) {
-                collision = true;
-                break;
-              }
+          for (let dx = -gap; dx < roadThick + gap; dx += 8) {
+            const nx = Math.floor(checkX + dx);
+            if (nx >= 0 && nx < GS && this.roadGrid[nx][Math.floor(checkY)]) {
+              collision = true;
+              break;
             }
           }
-
           if (collision) break;
           actualLength += 5;
         }
 
-        if (actualLength >= 50) {
-          const finalY = dir === 1 ? startY : startY - actualLength + roadThick;
-          addRoad(startX, finalY, roadThick, actualLength, false);
+        if (actualLength >= 120) {
+          addRoad(
+            startX + (Math.random() - 0.5) * actualLength * 0.08,
+            dir === 1 ? startY : startY - actualLength + roadThick,
+            roadThick,
+            actualLength,
+            false
+          );
         }
       } else {
         startX = dir === 1 ? parent.x + parent.w : parent.x - roadThick;
-        startY =
-          parent.y +
-          Math.floor(Math.random() * ((parent.h - roadThick) / 10)) * 10;
+        startY = parent.y + Math.floor(Math.random() * ((parent.h - roadThick) / 10)) * 10;
 
         while (actualLength < targetLength) {
           const checkX = dir === 1 ? startX + actualLength : startX - actualLength;
+          const checkY = startY + (Math.random() - 0.5) * actualLength * 0.08;
 
-          if (checkX < 0 || checkX + roadThick >= CONFIG.GRID_SIZE) break;
+          if (checkX < 0 || checkX + roadThick >= GS || checkY < 0 || checkY + roadThick >= GS) break;
 
           let collision = false;
-
-          for (let dy = -gap; dy < roadThick + gap; dy++) {
-            const ny = startY + dy;
-
-            if (ny >= 0 && ny < CONFIG.GRID_SIZE) {
-              if (this.roadGrid[checkX][ny]) {
-                collision = true;
-                break;
-              }
+          for (let dy = -gap; dy < roadThick + gap; dy += 8) {
+            const ny = Math.floor(checkY + dy);
+            if (ny >= 0 && ny < GS && this.roadGrid[Math.floor(checkX)][ny]) {
+              collision = true;
+              break;
             }
           }
-
           if (collision) break;
           actualLength += 5;
         }
 
-        if (actualLength >= 50) {
-          const finalX = dir === 1 ? startX : startX - actualLength + roadThick;
-          addRoad(finalX, startY, actualLength, roadThick, true);
+        if (actualLength >= 120) {
+          addRoad(
+            dir === 1 ? startX : startX - actualLength + roadThick,
+            startY + (Math.random() - 0.5) * actualLength * 0.08,
+            actualLength,
+            roadThick,
+            true
+          );
         }
       }
     }
   }
 
   generateCity() {
-    const venueFiltered = this.getVenueAwareBuildingTypes();
-    const specialBuildings = venueFiltered.filter(
-      (b) => b.maxCount !== Infinity
-    );
-    const fillerBuildings = venueFiltered.filter(
-      (b) => b.maxCount === Infinity
-    );
+    const GS = CONFIG.GRID_SIZE;
+    const center = Math.floor(GS / 2);
 
-    for (const bType of specialBuildings) {
-      let placedCount = 0;
+    const parkType = CONFIG.BUILDING_TYPES.find((b) => b.type === "Merkezi Park");
+    if (parkType) {
+      let placed = false;
+      for (let attempt = 0; attempt < 2000 && !placed; attempt++) {
+        const px = Math.floor(Math.random() * (GS - parkType.w - 20)) + 10;
+        const py = Math.floor(Math.random() * (GS - parkType.h - 20)) + 10;
 
-      outer: for (
-        let y = 1;
-        y < CONFIG.GRID_SIZE - bType.h - 1;
-        y += bType.h + 20
-      ) {
-        for (
-          let x = 1;
-          x < CONFIG.GRID_SIZE - bType.w - 1;
-          x += bType.w + 20
-        ) {
-          if (placedCount >= bType.maxCount) break outer;
-
-          if (this.canPlace(x, y, bType.w, bType.h, bType)) {
-            this.placeBuilding(x, y, bType);
-            placedCount++;
-          }
+        if (this.isClearForPark(px, py, parkType.w, parkType.h)) {
+          this.placeBuilding(px, py, parkType);
+          placed = true;
         }
       }
+    }
 
+    const centralGovTypes = ["Belediye Binası", "Hükümet Binası", "Adliye"];
+    const centralRadius = 800;
+
+    for (const typeName of centralGovTypes) {
+      const bType = CONFIG.BUILDING_TYPES.find((b) => b.type === typeName);
+      if (!bType) continue;
+
+      let placedCount = 0;
       let attempts = 0;
-      while (placedCount < bType.maxCount && attempts < 10000) {
-        const x =
-          Math.floor(Math.random() * (CONFIG.GRID_SIZE - bType.w - 2)) + 1;
-        const y =
-          Math.floor(Math.random() * (CONFIG.GRID_SIZE - bType.h - 2)) + 1;
+
+      while (placedCount < bType.maxCount && attempts < 8000) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.sqrt(Math.random()) * centralRadius;
+        const x = Math.floor(center + Math.cos(angle) * radius - bType.w / 2);
+        const y = Math.floor(center + Math.sin(angle) * radius - bType.h / 2);
 
         if (this.canPlace(x, y, bType.w, bType.h, bType)) {
           this.placeBuilding(x, y, bType);
           placedCount++;
         }
-
         attempts++;
       }
     }
 
-    for (let y = 1; y < CONFIG.GRID_SIZE - 1; y += 48) {
-      for (let x = 1; x < CONFIG.GRID_SIZE - 1; x += 48) {
-        if (this.grid[x][y]) continue;
+    const specialBuildings = CONFIG.BUILDING_TYPES.filter(
+      (b) =>
+        b.maxCount !== Infinity &&
+        b.type !== "boşluk" &&
+        b.type !== "Merkezi Park" &&
+        !(b as any).isFiller &&
+        !centralGovTypes.includes(b.type)
+    );
 
-        let bType = this.getRandomFillerType(fillerBuildings);
+    for (const bType of specialBuildings) {
+      let placedCount = 0;
+      let attempts = 0;
 
-        if (!this.canPlace(x, y, bType.w, bType.h, null)) {
-          bType = fillerBuildings[0];
-        }
+      while (placedCount < bType.maxCount && attempts < 5000) {
+        const x = Math.floor(Math.random() * (GS - bType.w - 2)) + 1;
+        const y = Math.floor(Math.random() * (GS - bType.h - 2)) + 1;
 
-        if (this.canPlace(x, y, bType.w, bType.h, null)) {
+        if (this.canPlace(x, y, bType.w, bType.h, bType)) {
           this.placeBuilding(x, y, bType);
+          placedCount++;
         }
+        attempts++;
       }
     }
 
+    const fillerBuildings = CONFIG.BUILDING_TYPES.filter(
+      (b) => (b.maxCount === Infinity || (b as any).isFiller) && b.type !== "boşluk"
+    );
+
     this.fillRoadEdges(fillerBuildings);
+    this.pruneEmptyRoads();
   }
 
-  getVenueAwareBuildingTypes(): BuildingTypeConfig[] {
-    const cloned = CONFIG.BUILDING_TYPES.map((b) => ({ ...b }));
+  pruneEmptyRoads() {
+    const newRoads: (RoadRect & { isHoriz?: boolean })[] = [];
 
-    if (this.venueProfile === "riverside") {
-      return cloned.map((b) => {
-        if (b.type.includes("Kütüphane")) return { ...b, maxCount: 5 };
-        if (b.type.includes("Apartman")) return { ...b, prob: 0.45 };
-        if (b.type.includes("Müstakil Ev")) return { ...b, prob: 0.35 };
-        if (b.type.includes("Fabrika")) return { ...b, maxCount: 2 };
-        return b;
-      });
+    for (const r of this.roads) {
+      let hasBuildingNeighbor = false;
+
+      if (r.isHoriz) {
+        for (let x = r.x; x < r.x + r.w && !hasBuildingNeighbor; x++) {
+          if (r.y > 0 && this.grid[x]?.[r.y - 1] !== null) hasBuildingNeighbor = true;
+          if (r.y + r.h < CONFIG.GRID_SIZE && this.grid[x]?.[r.y + r.h] !== null) hasBuildingNeighbor = true;
+        }
+      } else {
+        for (let y = r.y; y < r.y + r.h && !hasBuildingNeighbor; y++) {
+          if (r.x > 0 && this.grid[r.x - 1]?.[y] !== null) hasBuildingNeighbor = true;
+          if (r.x + r.w < CONFIG.GRID_SIZE && this.grid[r.x + r.w]?.[y] !== null) hasBuildingNeighbor = true;
+        }
+      }
+
+      if (hasBuildingNeighbor) newRoads.push(r);
     }
 
-    if (this.venueProfile === "edge-district") {
-      return cloned.map((b) => {
-        if (b.type.includes("Otopark")) return { ...b, maxCount: 14 };
-        if (b.type.includes("Fabrika")) return { ...b, maxCount: 6 };
-        if (b.type.includes("Apartman")) return { ...b, prob: 0.25 };
-        if (b.type.includes("Kafe")) return { ...b, prob: 0.08 };
-        return b;
-      });
+    this.roads = newRoads;
+
+    for (let i = 0; i < CONFIG.GRID_SIZE; i++) {
+      this.roadGrid[i].fill(false);
     }
 
-    return cloned.map((b) => {
-      if (b.type.includes("Ofis")) return { ...b, maxCount: 45 };
-      if (b.type.includes("AVM")) return { ...b, maxCount: 3 };
-      if (b.type.includes("Rezidans")) return { ...b, maxCount: 30 };
-      return b;
-    });
-  }
-
-  fillRoadEdges(fillerBuildings: BuildingTypeConfig[]) {
-    const sizes = [48, 64];
-
-    const dirs = [
-      { ox: 0, oy: 1 },
-      { ox: 0, oy: -1 },
-      { ox: 1, oy: 0 },
-      { ox: -1, oy: 0 },
-    ];
-
-    for (let rx = 1; rx < CONFIG.GRID_SIZE - 1; rx += 4) {
-      for (let ry = 1; ry < CONFIG.GRID_SIZE - 1; ry += 4) {
-        if (!this.roadGrid[rx][ry]) continue;
-
-        for (const d of dirs) {
-          for (const size of sizes) {
-            for (let offset = 0; offset < 3; offset++) {
-              let bx: number;
-              let by: number;
-
-              if (d.ox !== 0) {
-                bx = d.ox === 1 ? rx + 1 : rx - size;
-                by = ry - Math.floor(size / 2) + offset * 16;
-              } else {
-                bx = rx - Math.floor(size / 2) + offset * 16;
-                by = d.oy === 1 ? ry + 1 : ry - size;
-              }
-
-              if (
-                bx < 1 ||
-                by < 1 ||
-                bx + size >= CONFIG.GRID_SIZE - 1 ||
-                by + size >= CONFIG.GRID_SIZE - 1
-              ) {
-                continue;
-              }
-
-              if (this.grid[bx][by]) continue;
-
-              for (const ft of fillerBuildings) {
-                if (ft.w !== size && ft.h !== size) continue;
-
-                if (this.canPlace(bx, by, ft.w, ft.h, null)) {
-                  this.placeBuilding(bx, by, ft);
-                  break;
-                }
-              }
-            }
+    for (const r of this.roads) {
+      for (let i = r.x; i < r.x + r.w; i++) {
+        for (let j = r.y; j < r.y + r.h; j++) {
+          if (i >= 0 && i < CONFIG.GRID_SIZE && j >= 0 && j < CONFIG.GRID_SIZE) {
+            this.roadGrid[i][j] = true;
           }
         }
       }
     }
   }
 
-  canPlace(
-    startX: number,
-    startY: number,
-    w: number,
-    h: number,
-    bType: BuildingTypeConfig | null
-  ) {
+  isClearForPark(x: number, y: number, w: number, h: number) {
+    for (let i = x; i < x + w; i++) {
+      for (let j = y; j < y + h; j++) {
+        if (this.grid[i][j] !== null) return false;
+      }
+    }
+    return true;
+  }
+
+  fillRoadEdges(fillerBuildings: BuildingTypeConfig[]) {
+    for (const r of this.roads) {
+      let inReserved = false;
+      for (const zone of this.reservedZones) {
+        if (r.x < zone.x + zone.w && r.x + r.w > zone.x && r.y < zone.y + zone.h && r.y + r.h > zone.y) {
+          inReserved = true;
+          break;
+        }
+      }
+      if (inReserved) continue;
+
+      if (r.isHoriz) {
+        let cx = r.x;
+        while (cx < r.x + r.w) {
+          const checkY = r.y - 1;
+          if (
+            cx >= CONFIG.GRID_SIZE ||
+            checkY < 0 ||
+            this.grid[cx]?.[checkY] !== null ||
+            this.roadGrid[cx]?.[checkY]
+          ) {
+            cx += 4;
+            continue;
+          }
+          const bType = this.getRandomFillerType(fillerBuildings);
+          if (bType && this.canPlace(cx, r.y - bType.h, bType.w, bType.h, bType)) {
+            this.placeBuilding(cx, r.y - bType.h, bType);
+            cx += bType.w;
+          } else {
+            cx += 4;
+          }
+        }
+
+        cx = r.x;
+        while (cx < r.x + r.w) {
+          const checkY = r.y + r.h + 1;
+          if (
+            cx >= CONFIG.GRID_SIZE ||
+            checkY >= CONFIG.GRID_SIZE ||
+            this.grid[cx]?.[checkY] !== null ||
+            this.roadGrid[cx]?.[checkY]
+          ) {
+            cx += 4;
+            continue;
+          }
+          const bType = this.getRandomFillerType(fillerBuildings);
+          if (bType && this.canPlace(cx, r.y + r.h, bType.w, bType.h, bType)) {
+            this.placeBuilding(cx, r.y + r.h, bType);
+            cx += bType.w;
+          } else {
+            cx += 4;
+          }
+        }
+      } else {
+        let cy = r.y;
+        while (cy < r.y + r.h) {
+          const checkX = r.x - 1;
+          if (
+            cy >= CONFIG.GRID_SIZE ||
+            checkX < 0 ||
+            this.grid[checkX]?.[cy] !== null ||
+            this.roadGrid[checkX]?.[cy]
+          ) {
+            cy += 4;
+            continue;
+          }
+          const bType = this.getRandomFillerType(fillerBuildings);
+          if (bType && this.canPlace(r.x - bType.w, cy, bType.w, bType.h, bType)) {
+            this.placeBuilding(r.x - bType.w, cy, bType);
+            cy += bType.h;
+          } else {
+            cy += 4;
+          }
+        }
+
+        cy = r.y;
+        while (cy < r.y + r.h) {
+          const checkX = r.x + r.w + 1;
+          if (
+            cy >= CONFIG.GRID_SIZE ||
+            checkX >= CONFIG.GRID_SIZE ||
+            this.grid[checkX]?.[cy] !== null ||
+            this.roadGrid[checkX]?.[cy]
+          ) {
+            cy += 4;
+            continue;
+          }
+          const bType = this.getRandomFillerType(fillerBuildings);
+          if (bType && this.canPlace(r.x + r.w, cy, bType.w, bType.h, bType)) {
+            this.placeBuilding(r.x + r.w, cy, bType);
+            cy += bType.h;
+          } else {
+            cy += 4;
+          }
+        }
+      }
+    }
+  }
+
+  canPlace(startX: number, startY: number, w: number, h: number, bType: BuildingTypeConfig | null) {
+    if (bType?.type !== "Merkezi Park") {
+      for (const zone of this.reservedZones) {
+        if (
+          startX < zone.x + zone.w &&
+          startX + w > zone.x &&
+          startY < zone.y + zone.h &&
+          startY + h > zone.y
+        ) {
+          return false;
+        }
+      }
+    }
+
     if (
       startX < 1 ||
       startY < 1 ||
@@ -316,38 +463,51 @@ export class CityModel {
       return false;
     }
 
-    for (let i = startX; i < startX + w; i++) {
-      for (let j = startY; j < startY + h; j++) {
-        if (this.roadGrid[i][j] || this.grid[i][j] !== null) {
-          return false;
+    for (let i = startX; i < startX + w; i += 4) {
+      for (let j = startY; j < startY + h; j += 4) {
+        if (this.roadGrid[i]?.[j] || this.grid[i]?.[j] !== null) return false;
+      }
+    }
+
+    if (this.roadGrid[startX]?.[startY] || this.grid[startX]?.[startY] !== null) return false;
+    if (this.roadGrid[startX + w - 1]?.[startY] || this.grid[startX + w - 1]?.[startY] !== null) return false;
+    if (this.roadGrid[startX]?.[startY + h - 1] || this.grid[startX]?.[startY + h - 1] !== null) return false;
+    if (this.roadGrid[startX + w - 1]?.[startY + h - 1] || this.grid[startX + w - 1]?.[startY + h - 1] !== null) return false;
+
+    let adjacent = false;
+
+    for (let i = startX; i < startX + w; i += 4) {
+      if (this.roadGrid[i]?.[startY - 1]) {
+        adjacent = true;
+        break;
+      }
+      if (this.roadGrid[i]?.[startY + h]) {
+        adjacent = true;
+        break;
+      }
+    }
+
+    if (!adjacent) {
+      for (let j = startY; j < startY + h; j += 4) {
+        if (this.roadGrid[startX - 1]?.[j]) {
+          adjacent = true;
+          break;
+        }
+        if (this.roadGrid[startX + w]?.[j]) {
+          adjacent = true;
+          break;
         }
       }
     }
 
-    let adjacent = false;
-
-    for (let i = startX; i < startX + w; i++) {
-      if (this.roadGrid[i][startY - 1]) adjacent = true;
-      if (this.roadGrid[i][startY + h]) adjacent = true;
-    }
-
-    for (let j = startY; j < startY + h; j++) {
-      if (this.roadGrid[startX - 1][j]) adjacent = true;
-      if (this.roadGrid[startX + w][j]) adjacent = true;
-    }
-
     if (!adjacent) return false;
 
-    if (bType && bType.minDist > 0) {
+    if (bType && bType.minDist > 0 && bType.maxCount !== Infinity && !(bType as any).isFiller) {
       const cx = startX + w / 2;
       const cy = startY + h / 2;
-
       for (const existing of this.buildings) {
         if (existing.type === bType.type) {
-          if (
-            Math.hypot(cx - existing.centerX, cy - existing.centerY) <
-            bType.minDist
-          ) {
+          if (Math.hypot(cx - existing.centerX, cy - existing.centerY) < bType.minDist) {
             return false;
           }
         }
@@ -358,11 +518,12 @@ export class CityModel {
   }
 
   getRandomFillerType(fillerArray: BuildingTypeConfig[]) {
-    const r = Math.random();
+    const total = fillerArray.reduce((s, t) => s + ((t as any).prob ?? 0), 0);
+    const r = Math.random() * total;
     let cumulative = 0;
 
     for (const t of fillerArray) {
-      cumulative += t.prob ?? 0;
+      cumulative += (t as any).prob ?? 0;
       if (r <= cumulative) return t;
     }
 
@@ -374,9 +535,7 @@ export class CityModel {
 
     if (bType.imgIcon) {
       imgObj = new Image();
-      imgObj.onerror = () => {
-        console.warn("Map asset could not load:", CONFIG.ASSET_PATH + bType.imgIcon);
-      };
+      imgObj.onerror = () => console.warn("İkon yüklenemedi:", CONFIG.ASSET_PATH + bType.imgIcon);
       imgObj.src = CONFIG.ASSET_PATH + bType.imgIcon;
     }
 
@@ -407,7 +566,6 @@ export class CityModel {
     if (x >= 0 && x < CONFIG.GRID_SIZE && y >= 0 && y < CONFIG.GRID_SIZE) {
       return this.grid[x][y];
     }
-
     return null;
   }
 

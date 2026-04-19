@@ -7,6 +7,7 @@ export type BuildingTypeConfig = {
   maxCount: number;
   minDist: number;
   prob?: number;
+  isFiller?: boolean;
   imgIcon?: string;
 };
 

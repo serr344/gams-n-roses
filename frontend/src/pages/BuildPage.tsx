@@ -16,6 +16,12 @@ import {
 type BuildPageProps = {
   selectedVenue: Venue | null;
   onBack: () => void;
+  onFinish: (data: {
+    finalScore: number;
+    safeLimit: number;
+    usedBudget: number;
+    totalBudget: number;
+  }) => void;
 };
 
 type BuildPhase = "site-selection" | "layout-building";
@@ -24,7 +30,11 @@ const GRID_COLUMNS = 14;
 const GRID_ROWS = 9;
 const CELL_SIZE = 44;
 
-const BuildPage: React.FC<BuildPageProps> = ({ selectedVenue, onBack }) => {
+const BuildPage: React.FC<BuildPageProps> = ({
+  selectedVenue,
+  onBack,
+  onFinish,
+}) => {
   const [phase, setPhase] = useState<BuildPhase>("site-selection");
   const [selectedSite, setSelectedSite] = useState<CandidateSite | null>(null);
   const [nearbyBuildings, setNearbyBuildings] = useState<MapBuilding[]>([]);
@@ -52,6 +62,36 @@ const speakerPlaced = placedItems.some((item) =>
   item.itemId === "directional-speaker" ||
   item.itemId === "eco-speaker"
 );
+
+const safeLimit = Number(selectedSite?.maxAllowedDb?.toFixed(1) ?? 0);
+
+const calculateMockScore = () => {
+  const budgetEfficiency =
+    totalBudget > 0 ? Math.max(0, 100 - (usedBudget / totalBudget) * 100) : 0;
+
+  const speakerCount = placedItems.filter(
+    (item) =>
+      item.itemId === "standard-speaker" ||
+      item.itemId === "directional-speaker" ||
+      item.itemId === "eco-speaker"
+  ).length;
+
+  const barrierCount = placedItems.filter(
+    (item) =>
+      item.itemId === "basic-barrier" || item.itemId === "premium-wall"
+  ).length;
+
+  const stageBonus = stagePlaced ? 20 : 0;
+  const speakerBonus = Math.min(speakerCount * 12, 36);
+  const barrierBonus = Math.min(barrierCount * 10, 30);
+  const safeBonus = Math.min(safeLimit / 2, 50);
+
+  const score = Math.round(
+    stageBonus + speakerBonus + barrierBonus + safeBonus + budgetEfficiency * 0.2
+  );
+
+  return Math.min(score, 100);
+};
 
 const canContinueToNextStep = stagePlaced && speakerPlaced;
 
@@ -288,7 +328,14 @@ const canContinueToNextStep = stagePlaced && speakerPlaced;
       return;
     }
 
-    alert("Next step will come here.");
+    const finalScore = calculateMockScore();
+
+    onFinish({
+      finalScore,
+      safeLimit,
+      usedBudget,
+      totalBudget,
+    });
   }}
 >
   CONTINUE

@@ -1,12 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 
 type HomePageProps = {
-  onStart?: () => void;
-  onHowToPlay?: () => void;
+  onStartGame: () => void;
 };
 
-const HomePage: React.FC<HomePageProps> = ({ onStart }) => {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+const HomePage: React.FC<HomePageProps> = ({ onStartGame }) => {  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [musicOn, setMusicOn] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
@@ -77,9 +75,9 @@ const HomePage: React.FC<HomePageProps> = ({ onStart }) => {
 </p>
 
           <div className="home-actions">
-            <button className="pixel-primary-btn" onClick={handleStartClick}>
-              START GAME
-            </button>
+            <button className="pixel-primary-btn" onClick={onStartGame}>
+  START GAME
+</button>
 
             <button
               className="pixel-secondary-btn"

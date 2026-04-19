@@ -1,71 +1,148 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 type HomePageProps = {
   onStart?: () => void;
   onHowToPlay?: () => void;
 };
 
-const HomePage: React.FC<HomePageProps> = ({ onStart, onHowToPlay }) => {
+const HomePage: React.FC<HomePageProps> = ({ onStart }) => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [musicOn, setMusicOn] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.35;
+      audioRef.current.loop = true;
+    }
+  }, []);
+
+  const toggleMusic = async () => {
+    if (!audioRef.current) return;
+
+    try {
+      if (musicOn) {
+        audioRef.current.pause();
+        setMusicOn(false);
+      } else {
+        await audioRef.current.play();
+        setMusicOn(true);
+      }
+    } catch (error) {
+      console.error("Music could not start:", error);
+    }
+  };
+
+  const handleStartClick = async () => {
+    if (audioRef.current && !musicOn) {
+      try {
+        await audioRef.current.play();
+        setMusicOn(true);
+      } catch (error) {
+        console.error("Music autoplay blocked:", error);
+      }
+    }
+
+    onStart?.();
+  };
+
   return (
-    <div className="home-page">
-      <div className="home-overlay" />
+    <div className="home-page pixel-home">
+      <audio ref={audioRef} src="/audio/theme.mp3" />
 
-      <main className="home-content">
-        <section className="hero-section">
-          <p className="eyebrow">GAMS N' ROSES PRESENTS</p>
+      <div className="home-bg-image" />
+      <div className="home-bg-darkener" />
+      <div className="pixel-grid-overlay" />
 
-          <h1 className="hero-title">Echo of the Future</h1>
+      <main className="home-shell">
+        <header className="home-topbar">
+          <div className="pixel-tag">GAMS N&apos; ROSES</div>
 
-          <h2 className="hero-subtitle">
-            Build the smartest concert venue before the city turns against your sound.
-          </h2>
+          <button className="pixel-music-btn" onClick={toggleMusic}>
+            {musicOn ? "♫ MUSIC ON" : "♫ PLAY THEME"}
+          </button>
+        </header>
 
-          <p className="hero-description">
-            Choose a venue, manage your budget, place speakers and barriers,
-            protect hospitals, schools, and libraries, then compare your design
-            against the optimal solution calculated by GAMS.
+        <section className="home-hero">
+          <p className="pixel-eyebrow">PIXEL NOISE OPTIMIZATION</p>
+
+          <h1 className="pixel-title">ECHO OF THE FUTURE</h1>
+
+          <p className="pixel-subtitle">
+            Design the ultimate concert venue without turning the whole city
+            against your sound.
           </p>
 
-          <div className="hero-actions">
-            <button className="primary-btn" onClick={onStart}>
-              Start Game
+          <p className="pixel-description">
+            Choose a venue, balance budget and crowd happiness, protect
+            hospitals, schools, and libraries, then compare your strategy
+            against the optimized solution from GAMS.
+          </p>
+
+          <div className="home-actions">
+            <button className="pixel-primary-btn" onClick={handleStartClick}>
+              START GAME
             </button>
 
-            <button className="secondary-btn" onClick={onHowToPlay}>
-              How It Works
+            <button
+              className="pixel-secondary-btn"
+              onClick={() => setShowHowToPlay(true)}
+            >
+              HOW IT WORKS
             </button>
-          </div>
-        </section>
-
-        <section className="feature-grid">
-          <div className="feature-card">
-            <div className="feature-icon">🏙️</div>
-            <h3>Choose a Venue</h3>
-            <p>
-              Pick between city locations with different crowd capacities,
-              nearby buildings, and difficulty levels.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">🔊</div>
-            <h3>Design the Sound</h3>
-            <p>
-              Place speakers, barriers, and support tools to maximize audience
-              satisfaction without breaking noise limits.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">🤖</div>
-            <h3>Ask GAMS</h3>
-            <p>
-              Let GAMS analyze your design and compare your score with the
-              optimized solution.
-            </p>
           </div>
         </section>
       </main>
+
+      {showHowToPlay && (
+        <div className="howto-backdrop" onClick={() => setShowHowToPlay(false)}>
+          <div
+            className="howto-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2>HOW IT WORKS</h2>
+
+            <div className="howto-step">
+              <span>1.</span>
+              <p>
+                Choose a concert venue. Each location has different capacity,
+                budget, and nearby sensitive buildings.
+              </p>
+            </div>
+
+            <div className="howto-step">
+              <span>2.</span>
+              <p>
+                Build your sound layout with speakers, barriers, and support
+                tools while staying under budget.
+              </p>
+            </div>
+
+            <div className="howto-step">
+              <span>3.</span>
+              <p>
+                Protect hospitals, schools, libraries, and residential zones
+                from excessive noise.
+              </p>
+            </div>
+
+            <div className="howto-step">
+              <span>4.</span>
+              <p>
+                Ask GAMS to compare your design with the optimized solution and
+                see how close you got.
+              </p>
+            </div>
+
+            <button
+              className="pixel-primary-btn howto-close-btn"
+              onClick={() => setShowHowToPlay(false)}
+            >
+              CLOSE
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

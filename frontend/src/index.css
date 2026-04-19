@@ -78,6 +78,7 @@ body {
   max-width: 900px;
   margin: auto auto;
   text-align: center;
+  transform: translateY(-75px);
 }
 
 .pixel-tag {
@@ -196,6 +197,8 @@ body {
 
 .howto-modal {
   width: min(760px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
   background: #11192f;
   border: 3px solid #ff9f1c;
   box-shadow: 8px 8px 0 #000;
@@ -205,30 +208,37 @@ body {
 
 .howto-modal h2 {
   margin-top: 0;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
   color: #ffd166;
   font-family: "Press Start 2P", monospace;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   line-height: 1.6;
+  text-align: left;
 }
 
 .howto-step {
   display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 14px;
-  margin-bottom: 18px;
+  grid-template-columns: 42px 1fr;
+  column-gap: 12px;
   align-items: start;
+  margin-bottom: 20px;
 }
 
 .howto-step span {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   color: #61dafb;
   font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1.8;
 }
 
 .howto-step p {
   margin: 0;
   color: #dbe5ff;
-  line-height: 1.7;
+  line-height: 1.8;
+  font-size: 1rem;
 }
 
 .howto-close-btn {

@@ -64,20 +64,17 @@ const HomePage: React.FC<HomePageProps> = ({ onStart }) => {
         </header>
 
         <section className="home-hero">
-          <p className="pixel-eyebrow">PIXEL NOISE OPTIMIZATION</p>
 
           <h1 className="pixel-title">ECHO OF THE FUTURE</h1>
 
-          <p className="pixel-subtitle">
-            Design the ultimate concert venue without turning the whole city
-            against your sound.
-          </p>
+<p className="pixel-subtitle">
+  Design the loudest show the city can survive.
+</p>
 
-          <p className="pixel-description">
-            Choose a venue, balance budget and crowd happiness, protect
-            hospitals, schools, and libraries, then compare your strategy
-            against the optimized solution from GAMS.
-          </p>
+<p className="pixel-description">
+  Choose your district, manage your budget, place speakers and barriers,
+  protect sensitive zones, and challenge the optimized solution created by GAMS.
+</p>
 
           <div className="home-actions">
             <button className="pixel-primary-btn" onClick={handleStartClick}>
@@ -102,44 +99,44 @@ const HomePage: React.FC<HomePageProps> = ({ onStart }) => {
           >
             <h2>HOW IT WORKS</h2>
 
-            <div className="howto-step">
-              <span>1.</span>
-              <p>
-                Choose a concert venue. Each location has different capacity,
-                budget, and nearby sensitive buildings.
-              </p>
-            </div>
+<div className="howto-step">
+  <span>1.</span>
+  <p>
+    Choose a concert venue. Every district has different capacity, budget,
+    and nearby sensitive buildings.
+  </p>
+</div>
 
-            <div className="howto-step">
-              <span>2.</span>
-              <p>
-                Build your sound layout with speakers, barriers, and support
-                tools while staying under budget.
-              </p>
-            </div>
+<div className="howto-step">
+  <span>2.</span>
+  <p>
+    Build your layout using speakers, barriers, and support tools. Each item
+    affects sound coverage, cost, and risk.
+  </p>
+</div>
 
-            <div className="howto-step">
-              <span>3.</span>
-              <p>
-                Protect hospitals, schools, libraries, and residential zones
-                from excessive noise.
-              </p>
-            </div>
+<div className="howto-step">
+  <span>3.</span>
+  <p>
+    Keep the audience happy while protecting hospitals, schools, libraries,
+    and residential zones from excessive noise.
+  </p>
+</div>
 
-            <div className="howto-step">
-              <span>4.</span>
-              <p>
-                Ask GAMS to compare your design with the optimized solution and
-                see how close you got.
-              </p>
-            </div>
+<div className="howto-step">
+  <span>4.</span>
+  <p>
+    Ask GAMS to evaluate your design and compare your score with the
+    optimized solution.
+  </p>
+</div>
 
-            <button
-              className="pixel-primary-btn howto-close-btn"
-              onClick={() => setShowHowToPlay(false)}
-            >
-              CLOSE
-            </button>
+<button
+  className="pixel-primary-btn howto-close-btn"
+  onClick={() => setShowHowToPlay(false)}
+>
+  CLOSE
+</button>
           </div>
         </div>
       )}

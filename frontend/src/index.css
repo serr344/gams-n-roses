@@ -1475,3 +1475,40 @@ body {
     grid-template-columns: 1fr;
   }
 }
+.layout-grid-item {
+  position: absolute;
+  border-radius: 10px;
+  border: 2px solid rgba(15, 23, 42, 0.9);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #08111f;
+  font-weight: 800;
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 4;
+}
+
+.layout-grid-item:hover {
+  filter: brightness(1.08);
+}
+
+.layout-grid-preview {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 10px;
+  border: 2px dashed white;
+  z-index: 3;
+}
+
+.draggable-item {
+  cursor: grab;
+}
+
+.draggable-item:active {
+  cursor: grabbing;
+}

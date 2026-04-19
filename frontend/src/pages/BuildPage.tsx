@@ -139,6 +139,10 @@ const canContinueToNextStep = stagePlaced && speakerPlaced;
     setPlacedItems((prev) => [...prev, newItem]);
   };
 
+    const handleRemoveItem = (uid: string) => {
+  setPlacedItems((prev) => prev.filter((item) => item.uid !== uid));
+};
+
   if (!selectedVenue) {
     return (
       <div className="build-page">
@@ -234,15 +238,16 @@ const canContinueToNextStep = stagePlaced && speakerPlaced;
 
             <main className="layout-center-panel layout-center-panel-full">
               <LayoutGrid
-                columns={GRID_COLUMNS}
-                rows={GRID_ROWS}
-                cellSize={CELL_SIZE}
-                placedItems={placedItems}
-                remainingBudget={remainingBudget}
-                draggedItemId={draggedItemId}
-                canPlaceItemAt={canPlaceItemAt}
-                onPlaceItem={handlePlaceItem}
-              />
+  columns={GRID_COLUMNS}
+  rows={GRID_ROWS}
+  cellSize={CELL_SIZE}
+  placedItems={placedItems}
+  remainingBudget={remainingBudget}
+  draggedItemId={draggedItemId}
+  canPlaceItemAt={canPlaceItemAt}
+  onPlaceItem={handlePlaceItem}
+  onRemoveItem={handleRemoveItem}
+/>
             </main>
 
             <aside className="layout-right-panel-static">
@@ -271,12 +276,19 @@ const canContinueToNextStep = stagePlaced && speakerPlaced;
                     }`}
                     draggable
                     onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", item.id);
-                      setDraggedItemId(item.id);
-                    }}
-                    onDragEnd={() => {
-                      setDraggedItemId(null);
-                    }}
+  e.dataTransfer.setData("text/plain", item.id);
+  e.dataTransfer.effectAllowed = "move";
+
+  const transparentImg = new Image();
+  transparentImg.src =
+    "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxJyBoZWlnaHQ9JzEnPjwvc3ZnPg==";
+  e.dataTransfer.setDragImage(transparentImg, 0, 0);
+
+  setDraggedItemId(item.id);
+}}
+onDragEnd={() => {
+  setDraggedItemId(null);
+}}
                   >
                     <div className="layout-item-top">
                       <span className="layout-item-name">{item.name}</span>

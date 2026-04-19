@@ -1,8 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  BUILD_ITEM_MAP,
-  type BuildItemId,
-} from "../data/buildItems";
+import { BUILD_ITEM_MAP, type BuildItemId } from "../data/buildItems";
 
 export type PlacedItem = {
   uid: string;
@@ -20,7 +17,11 @@ type LayoutGridProps = {
   draggedItemId: BuildItemId | null;
   canPlaceItemAt: (itemId: BuildItemId, col: number, row: number) => boolean;
   onPlaceItem: (itemId: BuildItemId, col: number, row: number) => void;
+  onRemoveItem: (uid: string) => void;
 };
+
+const GRID_PADDING = 16;
+const GRID_GAP = 2;
 
 const LayoutGrid: React.FC<LayoutGridProps> = ({
   columns,
@@ -31,6 +32,7 @@ const LayoutGrid: React.FC<LayoutGridProps> = ({
   draggedItemId,
   canPlaceItemAt,
   onPlaceItem,
+  onRemoveItem,
 }) => {
   const [hoverCell, setHoverCell] = useState<{ col: number; row: number } | null>(null);
 
@@ -87,13 +89,14 @@ const LayoutGrid: React.FC<LayoutGridProps> = ({
         </div>
       </div>
 
-<div
-  className="layout-grid"
-  style={{
-    gridTemplateColumns: `repeat(${columns}, ${cellSize}px)`,
-    gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
-  }}
->
+      <div
+        className="layout-grid"
+        style={{
+          gridTemplateColumns: `repeat(${columns}, ${cellSize}px)`,
+          gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
+        }}
+        onDragLeave={() => setHoverCell(null)}
+      >
         {Array.from({ length: rows }).flatMap((_, row) =>
           Array.from({ length: columns }).map((__, col) => {
             const key = `${col}-${row}`;
@@ -112,6 +115,7 @@ const LayoutGrid: React.FC<LayoutGridProps> = ({
                   setHoverCell({ col, row });
                 }}
                 onDrop={(e) => handleDrop(e, col, row)}
+                title={`(${col}, ${row})`}
               />
             );
           })
@@ -121,16 +125,19 @@ const LayoutGrid: React.FC<LayoutGridProps> = ({
           const def = BUILD_ITEM_MAP[placed.itemId];
 
           return (
-            <div
+            <button
               key={placed.uid}
+              type="button"
               className="layout-grid-item"
               style={{
-                left: 16 + placed.col * (cellSize + 2),
-                top: 16 + placed.row * (cellSize + 2),
-                width: def.width * cellSize + (def.width - 1) * 2,
-                height: def.height * cellSize + (def.height - 1) * 2,
+                left: GRID_PADDING + placed.col * (cellSize + GRID_GAP),
+                top: GRID_PADDING + placed.row * (cellSize + GRID_GAP),
+                width: def.width * cellSize + (def.width - 1) * GRID_GAP,
+                height: def.height * cellSize + (def.height - 1) * GRID_GAP,
                 background: def.color,
               }}
+              title={`Remove ${def.name}`}
+              onClick={() => onRemoveItem(placed.uid)}
             >
               {def.icon ? (
                 <img
@@ -143,7 +150,7 @@ const LayoutGrid: React.FC<LayoutGridProps> = ({
                 />
               ) : null}
               <span>{def.name}</span>
-            </div>
+            </button>
           );
         })}
 
@@ -153,10 +160,10 @@ const LayoutGrid: React.FC<LayoutGridProps> = ({
             <div
               className={`layout-grid-preview ${previewRect.valid ? "valid" : "invalid"}`}
               style={{
-                left: 16 + previewRect.col * (cellSize + 2),
-                top: 16 + previewRect.row * (cellSize + 2),
-                width: def.width * cellSize + (def.width - 1) * 2,
-                height: def.height * cellSize + (def.height - 1) * 2,
+                left: GRID_PADDING + previewRect.col * (cellSize + GRID_GAP),
+                top: GRID_PADDING + previewRect.row * (cellSize + GRID_GAP),
+                width: def.width * cellSize + (def.width - 1) * GRID_GAP,
+                height: def.height * cellSize + (def.height - 1) * GRID_GAP,
               }}
             />
           );

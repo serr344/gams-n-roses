@@ -1,0 +1,6 @@
+[
+  {"id": "standard-speaker", "name": "Standard Speaker", "category": "speaker", "cost": 220, "baseDb": 92, "radius": 6, "spillover": 0.70},
+  {"id": "directional-speaker", "name": "Directional Speaker", "category": "speaker", "cost": 340, "baseDb": 96, "radius": 7, "spillover": 0.35},
+  {"id": "basic-barrier", "name": "Basic Barrier", "category": "barrier", "cost": 170, "attenuationDb": 12, "coverage": 3},
+  {"id": "smart-amplifier", "name": "Smart Amplifier", "category": "support", "cost": 290, "speakerGainDb": 5, "spilloverReduction": 0.18}
+]

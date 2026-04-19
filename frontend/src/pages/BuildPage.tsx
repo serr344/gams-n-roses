@@ -93,6 +93,35 @@ const calculateMockScore = () => {
   return Math.min(score, 100);
 };
 
+const calculateFinalOutputDb = () => {
+  const standardCount = placedItems.filter(
+    (item) => item.itemId === "standard-speaker"
+  ).length;
+
+  const directionalCount = placedItems.filter(
+    (item) => item.itemId === "directional-speaker"
+  ).length;
+
+  const ecoCount = placedItems.filter(
+    (item) => item.itemId === "eco-speaker"
+  ).length;
+
+  const amplifierCount = placedItems.filter(
+    (item) => item.itemId === "smart-amplifier"
+  ).length;
+
+  const stageBase = stagePlaced ? 72 : 0;
+
+  const output =
+    stageBase +
+    standardCount * 6 +
+    directionalCount * 8 +
+    ecoCount * 4 +
+    amplifierCount * 5;
+
+  return Number(output.toFixed(1));
+};
+
 const canContinueToNextStep = stagePlaced && speakerPlaced;
 
   const canPlaceItemAt = (itemId: BuildItemId, col: number, row: number) => {
@@ -341,10 +370,12 @@ onDragEnd={() => {
     }
 
     const finalScore = calculateMockScore();
+    const finalOutputDb = calculateFinalOutputDb();
 
     onFinish({
       finalScore,
       safeLimit,
+      finalOutputDb,
       usedBudget,
       totalBudget,
     });

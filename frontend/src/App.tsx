@@ -18,6 +18,7 @@ type Screen = "home" | "venues" | "build" | "results";
 type ResultData = {
   finalScore: number;
   safeLimit: number;
+  finalOutputDb: number;
   usedBudget: number;
   totalBudget: number;
 };
@@ -25,12 +26,13 @@ type ResultData = {
 const App: React.FC = () => {
   const [screen, setScreen] = useState<Screen>("home");
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-  const [resultData, setResultData] = useState<ResultData>({
-    finalScore: 0,
-    safeLimit: 0,
-    usedBudget: 0,
-    totalBudget: 0,
-  });
+const [resultData, setResultData] = useState<ResultData>({
+  finalScore: 0,
+  safeLimit: 0,
+  finalOutputDb: 0,
+  usedBudget: 0,
+  totalBudget: 0,
+});
 
   return (
     <>
@@ -60,18 +62,19 @@ const App: React.FC = () => {
 
       {screen === "results" && (
         <ResultsPage
-          finalScore={resultData.finalScore}
-          safeLimit={resultData.safeLimit}
-          usedBudget={resultData.usedBudget}
-          totalBudget={resultData.totalBudget}
-          onBackHome={() => {
-            setSelectedVenue(null);
-            setScreen("home");
-          }}
-          onPlayAgain={() => {
-            setScreen("venues");
-          }}
-        />
+  finalScore={resultData.finalScore}
+  safeLimit={resultData.safeLimit}
+  finalOutputDb={resultData.finalOutputDb}
+  usedBudget={resultData.usedBudget}
+  totalBudget={resultData.totalBudget}
+  onBackHome={() => {
+    setSelectedVenue(null);
+    setScreen("home");
+  }}
+  onPlayAgain={() => {
+    setScreen("venues");
+  }}
+/>
       )}
     </>
   );

@@ -16,7 +16,7 @@ const venues: Venue[] = [
     budget: 1400,
     difficulty: "Hard",
     description:
-      "High audience potential, but surrounded by offices, shopping areas, and dense buildings.",
+      "Huge audience potential, but dense buildings and busy city blocks make noise control harder.",
   },
   {
     id: "riverside-park",
@@ -25,7 +25,7 @@ const venues: Venue[] = [
     budget: 1100,
     difficulty: "Medium",
     description:
-      "Balanced open area with moderate crowd size, but closer to residential and library zones.",
+      "Balanced open area with decent crowd capacity, but sensitive zones are closer than they look.",
   },
   {
     id: "edge-district-lot",
@@ -34,7 +34,7 @@ const venues: Venue[] = [
     budget: 950,
     difficulty: "Easy",
     description:
-      "Safer area near warehouse and parking spaces, but with lower crowd potential.",
+      "Safer industrial-side location with fewer complaints, but lower crowd potential and less hype.",
   },
 ];
 
@@ -45,53 +45,61 @@ const VenueSelectionPage: React.FC<VenueSelectionPageProps> = ({
   onContinue,
 }) => {
   return (
-    <div className="venue-page">
-      <div className="venue-container">
-        <div className="venue-header">
-          <p className="venue-eyebrow">STEP 1</p>
-          <h1>Select Your Concert Venue</h1>
-          <p className="venue-subtitle">
-            Choose carefully. Every location changes your crowd potential,
-            budget, and nearby sensitive buildings.
-          </p>
-        </div>
+    <div className="venue-page pixel-venue-page">
+      <div className="venue-bg-overlay" />
 
-        <div className="venue-grid">
+      <main className="venue-shell">
+        <section className="venue-hero">
+          <p className="venue-step-tag">STEP 1</p>
+          <h1 className="venue-title">SELECT YOUR CONCERT VENUE</h1>
+          <p className="venue-description">
+            Pick the district where your concert will happen. Every location
+            changes your crowd size, budget, and nearby noise-sensitive buildings.
+          </p>
+        </section>
+
+        <section className="venue-grid">
           {venues.map((venue) => {
             const isSelected = selectedVenue?.id === venue.id;
 
             return (
               <button
-                type="button"
                 key={venue.id}
+                type="button"
                 className={`venue-card ${isSelected ? "selected" : ""}`}
                 onClick={() => onSelectVenue(venue)}
               >
-                <div className="venue-badge">{venue.difficulty}</div>
+                <div className="venue-card-top">
+                  <span
+                    className={`venue-difficulty difficulty-${venue.difficulty.toLowerCase()}`}
+                  >
+                    {venue.difficulty}
+                  </span>
+                  {isSelected && <span className="venue-picked">SELECTED</span>}
+                </div>
+
                 <h3>{venue.name}</h3>
                 <p>{venue.description}</p>
 
-                <div className="venue-stats">
+                <div className="venue-meta">
                   <span>Capacity: {venue.capacity}</span>
                   <span>Budget: ${venue.budget}</span>
                 </div>
-
-                {isSelected && <div className="venue-selected-text">Selected</div>}
               </button>
             );
           })}
-        </div>
+        </section>
 
-        <div className="venue-actions">
-          <button type="button" className="secondary-btn" onClick={onBack}>
-            Back
+        <div className="venue-footer-actions">
+          <button className="pixel-secondary-btn" onClick={onBack}>
+            BACK
           </button>
 
-          <button type="button" className="primary-btn" onClick={onContinue}>
-            Start Building
+          <button className="pixel-primary-btn" onClick={onContinue}>
+            START BUILDING
           </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

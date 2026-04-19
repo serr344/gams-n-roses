@@ -440,3 +440,253 @@ body {
     padding-top: 28px;
   }
 }
+.build-map-page {
+  position: relative;
+  min-height: 100vh;
+  background: #000;
+  overflow: hidden;
+}
+
+.map-canvas-shell {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+.map-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.map-canvas:active {
+  cursor: grabbing;
+}
+
+.map-ui-panel {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 5;
+  width: 270px;
+  background: rgba(8, 12, 20, 0.88);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px 18px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.map-ui-panel h3 {
+  margin: 0 0 10px 0;
+  color: #ff4f8b;
+  font-size: 1.5rem;
+}
+
+.map-ui-panel p {
+  margin: 8px 0;
+  color: #d8e3ff;
+  line-height: 1.5;
+}
+
+.map-status-panel {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 5;
+  width: 270px;
+  background: rgba(10, 40, 12, 0.88);
+  border: 2px solid #00ff66;
+  border-radius: 12px;
+  padding: 16px 18px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.map-status-panel h3 {
+  margin: 0 0 10px 0;
+  color: #00ff66;
+  font-size: 1.4rem;
+}
+
+.map-status-panel p {
+  margin: 8px 0;
+  color: #e8ffe8;
+  line-height: 1.45;
+}
+
+.map-status-note {
+  font-size: 0.9rem;
+  color: #b7d7b7 !important;
+}
+
+.map-tooltip {
+  position: fixed;
+  z-index: 12;
+  min-width: 180px;
+  background: rgba(18, 20, 28, 0.95);
+  border: 1px solid #6b7280;
+  border-radius: 10px;
+  padding: 12px 14px;
+  pointer-events: none;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.map-tooltip-title {
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.map-tooltip-db {
+  color: #ffb020;
+  font-weight: 700;
+}
+
+.map-tooltip-coord {
+  margin-top: 6px;
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+.build-top-info {
+  position: absolute;
+  left: 50%;
+  top: 22px;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: min(760px, calc(100% - 340px));
+}
+
+.build-venue-card {
+  background: rgba(10, 14, 26, 0.82);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 18px 22px;
+  backdrop-filter: blur(7px);
+  text-align: center;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+}
+
+.build-step-tag {
+  display: inline-block;
+  margin: 0 0 10px 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 179, 71, 0.12);
+  color: #ffb347;
+  border: 1px solid rgba(255, 179, 71, 0.3);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.build-venue-card h1 {
+  margin: 0 0 8px 0;
+  color: #fff;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+}
+
+.build-venue-card h2 {
+  margin: 0 0 8px 0;
+  color: #ffdf8c;
+  font-size: 1.35rem;
+}
+
+.build-venue-card p {
+  margin: 0;
+  color: #d4def7;
+  line-height: 1.6;
+}
+
+.build-meta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.build-meta span {
+  background: rgba(255, 255, 255, 0.07);
+  color: #edf2ff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.92rem;
+}
+
+.build-bottom-actions {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pixel-primary-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.layout-phase-placeholder {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 77, 109, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(255, 166, 0, 0.1), transparent 24%),
+    linear-gradient(135deg, #0b0f19 0%, #111827 45%, #18181b 100%);
+}
+
+.layout-phase-card {
+  width: min(720px, 100%);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 28px;
+  color: white;
+}
+
+.layout-phase-card h1 {
+  margin-top: 0;
+}
+
+.layout-phase-card p {
+  color: #d4def7;
+  line-height: 1.7;
+}
+
+.layout-phase-actions {
+  margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .map-ui-panel,
+  .map-status-panel {
+    width: 220px;
+    padding: 12px 14px;
+  }
+
+  .build-top-info {
+    width: calc(100% - 32px);
+    top: 16px;
+    left: 16px;
+    transform: none;
+  }
+
+  .build-bottom-actions {
+    width: calc(100% - 32px);
+    bottom: 16px;
+    left: 16px;
+    transform: none;
+    justify-content: flex-start;
+  }
+}

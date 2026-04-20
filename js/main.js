@@ -1,48 +1,38 @@
-import { CityModel } from './CityModel.js';
-import { Camera } from './Camera.js';
-import { Renderer } from './Renderer.js';
+import { CityModel }    from './CityModel.js';
+import { Camera }       from './Camera.js';
+import { Renderer }     from './Renderer.js';
 import { InputManager } from './InputManager.js';
 
-const canvas = document.getElementById('cityCanvas');
-const tooltip = document.getElementById('tooltip');
-const statusDiv = document.getElementById('status');
+const canvas     = document.getElementById('cityCanvas');
+const tooltip    = document.getElementById('tooltip');
+const statusDiv  = document.getElementById('status');
 const statusText = document.getElementById('status-text');
 
 const OPTIM_RADIUS = 600;
 
-let cityModel = new CityModel();
-let camera = new Camera(window.innerWidth, window.innerHeight);
-let renderer = new Renderer(canvas);
-let selectedBuilding = null;
+const cityModel = new CityModel();
+const camera    = new Camera(window.innerWidth, window.innerHeight);
+const renderer  = new Renderer(canvas);
+
 let optimState = null;
 
-// -------------------------------------------------------------------
-// GAMSPY LP'nin analitik eşdeğeri — anlık hesap, sıfır gecikme
-// Model: Maximize L
-//        subject to: L <= db_limit_i + 20*log10(d_i)  ∀i
-// Çözüm: L* = min_i( db_limit_i + 20*log10(d_i) )
-// -------------------------------------------------------------------
 function runOptimization(wx, wy) {
-    const nearby = [];
-
-    for (const b of cityModel.buildings) {
+    const nearby = cityModel.buildings.reduce((acc, b) => {
         const d = Math.hypot(b.centerX - wx, b.centerY - wy);
-        // CityModel'de db özelliği dbLimit olarak güncellendiği için fallback ekliyoruz (b.dbLimit || b.db)
-        const buildingDb = b.dbLimit || b.db; 
-
-        if (d > 1 && d <= OPTIM_RADIUS && buildingDb > 0) {
-            nearby.push({
-                type:     b.type,
-                dbLimit:  buildingDb,
-                dist:     d,
-                allowed:  buildingDb + 20 * Math.log10(d),  // LP kısıt sınırı
-                centerX:  b.centerX,
-                centerY:  b.centerY
+        if (d > 1 && d <= OPTIM_RADIUS && b.dbLimit > 0) {
+            acc.push({
+                type: b.type,
+                dbLimit: b.dbLimit,
+                dist: d,
+                allowed: b.dbLimit + 20 * Math.log10(d),
+                centerX: b.centerX,
+                centerY: b.centerY,
             });
         }
-    }
+        return acc;
+    }, []);
 
-    if (nearby.length === 0) {
+    if (!nearby.length) {
         return {
             maxDb: 130.0,
             status: 'no_constraints',
@@ -51,11 +41,10 @@ function runOptimization(wx, wy) {
         };
     }
 
-    // LP optimal: en kısıtlayıcı bina minimumdur
-    let limiting = nearby[0];
-    for (const b of nearby) {
-        if (b.allowed < limiting.allowed) limiting = b;
-    }
+    const limiting = nearby.reduce(
+        (min, b) => (b.allowed < min.allowed ? b : min),
+        nearby[0]
+    );
 
     return {
         maxDb: Math.round(limiting.allowed * 10) / 10,
@@ -65,91 +54,113 @@ function runOptimization(wx, wy) {
     };
 }
 
-// -------------------------------------------------------------------
-// UI state
-// -------------------------------------------------------------------
+function isBlockedByBuilding(building, worldPos) {
+    if (!building || !worldPos) return false;
+
+    const padX = Math.min(18, building.w * 0.22);
+    const padY = Math.min(18, building.h * 0.22);
+
+    return (
+        worldPos.x >= building.x + padX &&
+        worldPos.x <= building.x + building.w - padX &&
+        worldPos.y >= building.y + padY &&
+        worldPos.y <= building.y + building.h - padY
+    );
+}
+
 function handleUIState(action, building, mouseX, mouseY, isDragging, worldPos) {
-    if (action === 'hover' && !isDragging) {
-        // Tooltip
+    if (action === 'hover') {
+        if (isDragging) return;
+
+        statusDiv.style.display = 'none';
+
         if (building) {
-            const buildingDb = building.dbLimit || building.db;
-            tooltip.style.display = 'block';
-            tooltip.style.left  = mouseX + 15 + 'px';
-            tooltip.style.top   = mouseY + 15 + 'px';
+            tooltip.style.cssText = `display:block;left:${mouseX + 15}px;top:${mouseY + 15}px`;
             tooltip.innerHTML = `
                 <div class="b-type">${building.type}</div>
-                <div class="b-db">Tolerans: ${buildingDb} dB</div>
-                <div class="b-coord">Koordinat: [${Math.round(building.centerX)}, ${Math.round(building.centerY)}]</div>
-            `;
+                <div class="b-db">Tolerans: ${building.dbLimit} dB</div>
+                <div class="b-coord">Koordinat: [${Math.round(building.centerX)}, ${Math.round(building.centerY)}]</div>`;
         } else {
             tooltip.style.display = 'none';
         }
-        document.body.style.cursor = 'pointer';
 
-        // Anlık optimizasyon (Fare ile gezinirken)
         if (worldPos) {
-            const data = runOptimization(worldPos.x, worldPos.y);
-            optimState = { pos: { x: worldPos.x, y: worldPos.y }, data };
+            optimState = {
+                pos: worldPos,
+                data: runOptimization(worldPos.x, worldPos.y)
+            };
         }
 
     } else if (action === 'leave') {
         tooltip.style.display = 'none';
-        document.body.style.cursor = 'grab';
         optimState = null;
+        statusDiv.style.display = 'none';
 
-    } else if (action === 'click') {
-        const clickPos = worldPos;
+    } else if (action === 'click' && worldPos) {
+        const clickedOnBuilding = isBlockedByBuilding(building, worldPos);
+        const clickedOnRoad = cityModel.isRoad(worldPos.x, worldPos.y);
 
-        if (clickPos) {
-            // 1. Kullanıcının seçtiği noktanın verisini hesapla ve kaydet
-            const data = runOptimization(clickPos.x, clickPos.y);
-            const payload = { pos: { x: clickPos.x, y: clickPos.y }, data };
-            localStorage.setItem('stageOptimData', JSON.stringify(payload));
-
-            // 2. GAMS Optimizasyon Motorunu çalıştır ve en iyi noktayı bulup kaydet
-            console.log("GAMSPy Motoru haritayı tarıyor...");
-            const optimalData = cityModel.findOptimalStageLocation();
-            localStorage.setItem('gams_optimalData', JSON.stringify(optimalData));
-
-            // 3. Sahne sayfasına geç
-            window.location.href = 'stage.html';
-        }
-
-        if (building) {
-            selectedBuilding = building;
-            const buildingDb = building.dbLimit || building.db;
+        if (clickedOnBuilding) {
+            tooltip.style.display = 'none';
             statusDiv.style.display = 'block';
             statusText.innerHTML = `
-                <b>Seçilen Alan:</b> ${building.type}<br>
-                <b>Sınır:</b> ${buildingDb} dB<br>
-                <b>Koordinat:</b> X:${Math.round(building.centerX)}, Y:${Math.round(building.centerY)}<br>
-                <i style="font-size:12px;color:#aaa;">Stage sayfası açılıyor...</i>
-            `;
+                <b style="color:#ff4d4d;">Geçersiz seçim</b><br>
+                Binaların üstüne sahne kurulamaz.<br>
+                <i style="font-size:12px;color:#aaa;">Lütfen boş bir alan seç.</i>`;
+            return;
         }
+
+        if (clickedOnRoad) {
+            tooltip.style.display = 'none';
+            statusDiv.style.display = 'block';
+            statusText.innerHTML = `
+                <b style="color:#ff4d4d;">Geçersiz seçim</b><br>
+                Yolların üstüne sahne kurulamaz.<br>
+                <i style="font-size:12px;color:#aaa;">Lütfen boş bir alan seç.</i>`;
+            return;
+        }
+
+        const data = runOptimization(worldPos.x, worldPos.y);
+
+        localStorage.setItem(
+            'stageOptimData',
+            JSON.stringify({ pos: worldPos, data })
+        );
+
+        localStorage.setItem(
+            'gams_optimalData',
+            JSON.stringify(cityModel.findOptimalStageLocation())
+        );
+
+        statusDiv.style.display = 'block';
+        statusText.innerHTML = `
+            <b>Seçilen Alan:</b> Boş Alan<br>
+            <b>Koordinat:</b> X:${Math.round(worldPos.x)}, Y:${Math.round(worldPos.y)}<br>
+            <b>Maksimum İzinli Ses:</b> ${data.maxDb} dB<br>
+            <i style="font-size:12px;color:#aaa;">Stage sayfası açılıyor...</i>`;
+
+        window.location.href = 'stage.html';
     }
 }
 
 function renderLoop() {
-    renderer.draw(cityModel, camera, selectedBuilding, optimState);
+    renderer.draw(cityModel, camera, optimState);
     requestAnimationFrame(renderLoop);
 }
 
 new InputManager(canvas, camera, cityModel, handleUIState, () => {});
 
-window.addEventListener('resize', () => renderer.resize(window.innerWidth, window.innerHeight));
+window.addEventListener('resize', () => {
+    renderer.resize(window.innerWidth, window.innerHeight);
+});
+
 renderer.resize(window.innerWidth, window.innerHeight);
 renderLoop();
 
-// Eğer sayfanın altındaki butona basılırsa da optimizasyonu çalıştırıp gitmesi için
-const nextBtn = document.querySelector('.next-btn');
-if (nextBtn) {
-    nextBtn.addEventListener('click', (e) => {
-        // Eğer HTML'de onclick="window.location..." yazıyorsa onu ezmek için:
-        e.preventDefault(); 
-        
-        console.log("GAMSPy Motoru haritayı tarıyor...");
-        const optimalData = cityModel.findOptimalStageLocation();
-        localStorage.setItem('gams_optimalData', JSON.stringify(optimalData));
-        window.location.href = 'stage.html';
-    });
-}
+requestAnimationFrame(() => setTimeout(() => cityModel.findOptimalStageLocation(), 0));
+
+document.querySelector('.next-btn')?.addEventListener('click', e => {
+    e.preventDefault();
+    localStorage.setItem('gams_optimalData', JSON.stringify(cityModel.findOptimalStageLocation()));
+    window.location.href = 'stage.html';
+});

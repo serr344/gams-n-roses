@@ -432,13 +432,17 @@ export class CityModel {
         if (x >= 0 && x < CONFIG.GRID_SIZE && y >= 0 && y < CONFIG.GRID_SIZE) return this.grid[x][y];
         return null;
     }
+    isRoad(x, y) {
+        if (x >= 0 && x < CONFIG.GRID_SIZE && y >= 0 && y < CONFIG.GRID_SIZE) {
+            return !!this.roadGrid[x]?.[y];
+        }
+        return false;
+    }
 
     findOptimalStageLocation() {
         const GS = CONFIG.GRID_SIZE;
         let bestScore = -Infinity;
         let bestLocation = null;
-
-        console.log("GAMSPy Simülasyonu: Harita taranıyor...");
 
         for (let x = 15; x < GS - 30; x += 15) {
             for (let y = 15; y < GS - 30; y += 15) {
@@ -492,7 +496,6 @@ export class CityModel {
             maxDb: 130.0
         };
 
-        console.log("En iyi konum bulundu:", result);
         return result;
     }
 }

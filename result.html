@@ -320,28 +320,27 @@ body {
 </div>
 
 <script>
-  // GAMS character lines per score tier
   const GAMS_LINES = {
     perfect: [
       "Extraordinary. You matched my LP solution almost exactly. I didn't think a human could do this.",
-      "I ran the model 3 times to make sure. Turns out you're just... good. Respect.",
-      "The Integer Program agrees: flawless placement. I'll cite you in my next paper.",
+      "I ran the model multiple times to make sure. Turns out you're just good. Respect.",
+      "The Integer Program agrees: flawless placement. I'll cite you in my next paper."
     ],
     great: [
       "Not bad. A few constraints were tighter than you realized, but the crowd numbers are solid.",
-      "You got close. My branch-and-bound found a slightly better slot configuration — but this works.",
-      "Good instincts. The LP shadow prices suggest you left about 10% capacity on the table. Next time.",
+      "You got close. My optimizer found a slightly better slot configuration — but this works.",
+      "Good instincts. You left some performance on the table, but this is still a strong result."
     ],
     average: [
-      "Hmm. Acoustically... ambitious. The buildings near sector NE were clearly not your friends.",
-      "I see what you were going for. Unfortunately, decibel physics doesn't care about intentions.",
-      "The model flagged two sub-optimal placements. I won't say which ones. Think about it.",
+      "You found a workable setup, but the system still sees room for improvement.",
+      "This layout is acceptable, though it does not fully exploit the location.",
+      "Not a bad attempt. Better speaker and barrier placement could raise the audience score."
     ],
-    bad: [
-      "I've seen worse. Actually no, I haven't. The hospital alone dropped your capacity by 40%.",
-      "The optimization engine returned a result. I chose not to show you how bad the gap is. You're welcome.",
-      "Technically this counts as a festival. Technically.",
-    ],
+    weak: [
+      "Your setup works, but it is far from the GAMSPy optimum.",
+      "The current placement is inefficient for this location.",
+      "This result suggests the equipment layout needs improvement."
+    ]
   };
 
   function pickLine(tier) {
@@ -349,96 +348,124 @@ body {
     return lines[Math.floor(Math.random() * lines.length)];
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
-    // 1. User score
-    let userCrowd = parseInt(localStorage.getItem('gams_userCrowd') || '0');
-
-    // 2. Stage data
-    let stageDataRaw = localStorage.getItem('stageOptimData');
-    let userX = "?", userY = "?", userMaxDb = "?";
-    if (stageDataRaw) {
-      let sd = JSON.parse(stageDataRaw);
-      if (sd.pos) { userX = Math.round(sd.pos.x); userY = Math.round(sd.pos.y); }
-      if (sd.data?.maxDb) userMaxDb = sd.data.maxDb;
+  function safeJsonParse(value, fallback = null) {
+    try {
+      return value ? JSON.parse(value) : fallback;
+    } catch {
+      return fallback;
     }
+  }
 
-    // 3. Optimal data
-    let optimalDataRaw = localStorage.getItem('gams_optimalData');
-    let optimalData = optimalDataRaw
-      ? JSON.parse(optimalDataRaw)
-      : { maxSeyirci: 15000, x: "?", y: "?", maxDb: "?" };
-    let optimalCrowd = Math.floor((optimalData.maxSeyirci || 15000) * 1.10);
-    if (userCrowd > optimalCrowd) optimalCrowd = userCrowd + 500;
-    if (optimalCrowd <= 0) optimalCrowd = 10000;
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
 
-    // 4. Percentage
-    const percentage = Math.max(0, Math.min(100, (userCrowd / optimalCrowd) * 100));
+  window.addEventListener('DOMContentLoaded', () => {
+    const userCrowd = parseInt(localStorage.getItem('gams_userCrowd') || '0', 10);
+    const userDb = parseFloat(localStorage.getItem('gams_userDb') || '0');
 
-    // 5. Render scores
-    document.getElementById('resUser').textContent = userCrowd.toLocaleString('en-US') + ' 👥';
-    document.getElementById('resOpt').textContent  = optimalCrowd.toLocaleString('en-US') + ' 👥';
-    document.getElementById('resUserCoord').textContent = `📍 [X: ${userX}, Y: ${userY}]`;
-    document.getElementById('resOptCoord').textContent  = `📍 [X: ${optimalData.x}, Y: ${optimalData.y}]`;
-    document.getElementById('resUserDb').textContent = `🔊 Capacity: ${userMaxDb} dB`;
-    document.getElementById('resOptDb').textContent  = `🔊 Capacity: ${optimalData.maxDb} dB`;
+    const stageData = safeJsonParse(localStorage.getItem('stageOptimData'), {});
+    const optimalData = safeJsonParse(localStorage.getItem('gams_optimalData'), {
+      maxSeyirci: 0,
+      x: '?',
+      y: '?',
+      maxDb: 0,
+      method: 'GAMSPy'
+    });
 
-    // 6. Tier logic
-    let tier, cardMsg, cardColor, bubbleLine;
+    const userX = stageData?.pos?.x != null ? Math.round(stageData.pos.x) : '?';
+    const userY = stageData?.pos?.y != null ? Math.round(stageData.pos.y) : '?';
+
+    const optimalCrowd = parseInt(optimalData.maxSeyirci || 0, 10);
+    const optimalDb = parseFloat(optimalData.maxDb || 0);
+    const optimalX = optimalData.x != null ? optimalData.x : '?';
+    const optimalY = optimalData.y != null ? optimalData.y : '?';
+    const optimalViolations = parseInt(optimalData.violations || 0, 10);
+
+    const percentage = optimalCrowd > 0
+      ? Math.max(0, Math.min(100, (userCrowd / optimalCrowd) * 100))
+      : 0;
+
+    setText('resUser', `${userCrowd.toLocaleString('en-US')} 👥`);
+    setText('resOpt', `${optimalCrowd.toLocaleString('en-US')} 👥`);
+
+    setText('resUserCoord', `📍 [X: ${userX}, Y: ${userY}]`);
+    setText('resOptCoord', `📍 [X: ${optimalX}, Y: ${optimalY}]`);
+
+    setText('resUserDb', `🔊 Capacity: ${userDb.toFixed(2)} dB`);
+    setText('resOptDb', `🔊 Capacity: ${optimalDb.toFixed(2)} dB`);
+
+    let tier;
+    let cardMsg;
+    let cardColor;
 
     if (percentage >= 95) {
-      tier      = 'perfect';
-      cardMsg   = `Outstanding! You matched the <b>GAMSPy optimal solution</b> almost exactly. The stage placement and equipment setup were near-perfect.`;
+      tier = 'perfect';
+      cardMsg = `Outstanding! You matched the <b>GAMSPy optimal solution</b> almost exactly.`;
       cardColor = 'var(--green)';
     } else if (percentage >= 75) {
-      tier      = 'great';
-      cardMsg   = `Great work! The <b>GAMSPy Engine</b> found a configuration that fits <b>${(optimalCrowd - userCrowd).toLocaleString('en-US')} more people</b> — but your instincts were solid.`;
+      tier = 'great';
+      cardMsg = `Great work! The <b>GAMSPy engine</b> found a layout that fits <b>${(optimalCrowd - userCrowd).toLocaleString('en-US')} more people</b>, but your solution is already strong.`;
       cardColor = 'var(--gold)';
     } else if (percentage >= 40) {
-      tier      = 'average';
-      cardMsg   = `An average festival. Your <b>DB capacity</b> was well below the algorithm's ceiling. Try moving further from the buildings.`;
+      tier = 'average';
+      cardMsg = `Decent result. Your setup is <b>playable</b>, but it still falls below the optimizer's best layout for this location.`;
       cardColor = 'var(--cyan)';
     } else {
-      tier      = 'bad';
-      cardMsg   = `Disaster. The acoustic tolerance of your chosen location is insufficient. Building limits were hammered from the start. Read the map more carefully next time.`;
+      tier = 'weak';
+
+      if (optimalViolations > 0) {
+        cardMsg = `Your result is far below the <b>GAMSPy reference</b>. This location is acoustically restrictive, and the current layout does not handle the nearby building limits efficiently.`;
+      } else {
+        cardMsg = `Your result is far below the <b>GAMSPy optimum</b>. This does <b>not necessarily mean the location is bad</b>; it usually means the current equipment placement is inefficient for this map point.`;
+      }
+
       cardColor = 'var(--red)';
     }
 
-    bubbleLine = pickLine(tier);
+    const bubbleLine = pickLine(tier);
 
-    // 7. Apply card message
     const msg = document.getElementById('resMsg');
-    msg.innerHTML    = cardMsg;
-    msg.style.color  = cardColor;
-
-    // 8. Speech bubble — typewriter effect
-    const bubbleEl = document.getElementById('bubbleText');
-    bubbleEl.textContent = '';
-    let ci = 0;
-    const typeInterval = setInterval(() => {
-      if (ci < bubbleLine.length) {
-        bubbleEl.textContent += bubbleLine[ci++];
-      } else {
-        clearInterval(typeInterval);
-        // remove blinking cursor after typing done
-        bubbleEl.style.setProperty('--cursor-done', '1');
-      }
-    }, 35);
-
-    // 9. Character expression: tilt slightly based on tier
-    const gamsImg = document.getElementById('gamsImg');
-    if (tier === 'perfect') {
-      gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(57,255,20,0.4))';
-    } else if (tier === 'bad') {
-      gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(255,23,68,0.4))';
-      gamsImg.style.transform = 'scaleX(-1)'; // face away in shame
-    } else if (tier === 'great') {
-      gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(255,195,0,0.4))';
+    if (msg) {
+      msg.innerHTML = cardMsg;
+      msg.style.color = cardColor;
     }
 
-    // 10. Progress bar
+    const bubbleEl = document.getElementById('bubbleText');
+    if (bubbleEl) {
+      bubbleEl.textContent = '';
+      let ci = 0;
+      const typeInterval = setInterval(() => {
+        if (ci < bubbleLine.length) {
+          bubbleEl.textContent += bubbleLine[ci++];
+        } else {
+          clearInterval(typeInterval);
+        }
+      }, 35);
+    }
+
+    const gamsImg = document.getElementById('gamsImg');
+    if (gamsImg) {
+      gamsImg.style.transform = '';
+
+      if (tier === 'perfect') {
+        gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(57,255,20,0.4))';
+      } else if (tier === 'weak') {
+        gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(255,23,68,0.4))';
+      } else if (tier === 'great') {
+        gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(255,195,0,0.4))';
+      } else {
+        gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(0,229,255,0.25))';
+      }
+    }
+
     setTimeout(() => {
-      document.getElementById('resFill').style.width = percentage.toFixed(1) + '%';
-      document.getElementById('resPct').textContent  = `System Match: ${percentage.toFixed(1)}%`;
+      const fill = document.getElementById('resFill');
+      const pct = document.getElementById('resPct');
+
+      if (fill) fill.style.width = `${percentage.toFixed(1)}%`;
+      if (pct) pct.textContent = `System Match: ${percentage.toFixed(1)}%`;
     }, 300);
   });
 </script>

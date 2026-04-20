@@ -42,9 +42,30 @@ At the end of the game:
 - Python
 - GAMSPy
 
-## 🚀 How to Run
+# ⚙️ Installation
 
-Simply open:
+## 1. Clone project
 
-```html
+git clone <repo-url>
+cd gams-n-roses
+
+## Install Python packages
+
+pip install flask flask-cors gamspy
+
+# ▶️ Run Project
+
+## Start backend server
+
+py api_server.py
+
+Server runs on:
+http://127.0.0.1:5000
+
+## Start frontend
+
+Use Live Server or open:
 home.html
+
+Recommended frontend port:
+http://127.0.0.1:5500

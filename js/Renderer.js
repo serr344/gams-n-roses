@@ -19,7 +19,7 @@ export class Renderer {
         this.canvas.height = height;
     }
 
-    draw(cityModel, camera, selectedBuilding, optimState = null) {
+    draw(cityModel, camera, optimState = null) {
         this.ctx.fillStyle = "#000";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -27,7 +27,6 @@ export class Renderer {
         this.ctx.translate(camera.x, camera.y);
         this.ctx.scale(camera.zoom, camera.zoom);
 
-        // ZEMİN
         if (this.grassPattern) {
             this.ctx.fillStyle = this.grassPattern;
         } else {
@@ -35,18 +34,15 @@ export class Renderer {
         }
         this.ctx.fillRect(0, 0, CONFIG.GRID_SIZE, CONFIG.GRID_SIZE);
 
-        // YOLLAR
         this.ctx.fillStyle = "#222";
         for (let r of cityModel.roads) {
             this.ctx.fillRect(r.x, r.y, r.w, r.h);
         }
 
-        // BİNALAR
         cityModel.buildings.forEach(b => {
             const isPark = b.type.includes('Park') || b.type.includes('Meydan') || b.type === 'boşluk';
             const isMerkeziPark = b.type === 'Merkezi Park';
 
-            // Optimizasyon renk kodlaması (Sadece etki alanındaki binalar renklenecek)
             if (optimState?.data?.nearby && !isPark) {
                 const found = optimState.data.nearby.find(
                     n => n.centerX === b.centerX && n.centerY === b.centerY
@@ -60,33 +56,29 @@ export class Renderer {
                     const g = Math.round(180 * t);
                     this.ctx.fillStyle = `rgb(${r},${g},20)`;
                     this.ctx.fillRect(b.x, b.y, b.w, b.h);
-                    
+
                     if (camera.zoom > 1.0) {
                         this.ctx.fillStyle = '#fff';
                         this.ctx.font = `bold ${9 / camera.zoom}px Segoe UI`;
                         this.ctx.fillText(`${found.dbLimit}dB`, b.x + 2 / camera.zoom, b.y + b.h / 2);
                     }
                 } else {
-                    // Etki alanında olmayan binalar için yarı saydam siyah çerçeve
                     this.ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
                     this.ctx.lineWidth = 1.5 / camera.zoom;
                     this.ctx.strokeRect(b.x, b.y, b.w, b.h);
                 }
             } else if (!isPark) {
-                // NORMAL DURUM: Renkli blok yerine sadece çevre çizgisi
                 this.ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
                 this.ctx.lineWidth = 1.5 / camera.zoom;
                 this.ctx.strokeRect(b.x, b.y, b.w, b.h);
             }
 
-            // Merkezi Park — özel dolgu + efekt
             if (isMerkeziPark) {
                 this._drawMerkeziPark(b, camera);
             }
 
-            // PNG İKON (Merkezi Park hariç)
             if (!isMerkeziPark && b.imageObj && b.imageObj.complete && b.imageObj.naturalWidth !== 0) {
-                let padding = isPark ? 0 : 2; 
+                let padding = isPark ? 0 : 2;
                 this.ctx.drawImage(
                     b.imageObj,
                     b.x + padding, b.y + padding,
@@ -94,7 +86,6 @@ export class Renderer {
                 );
             }
 
-            // Normal park kenarlığı
             if (isPark && !isMerkeziPark) {
                 this.ctx.strokeStyle = '#1a5c10';
                 this.ctx.lineWidth = 3 / camera.zoom;
@@ -110,25 +101,14 @@ export class Renderer {
                     this.ctx.textAlign = 'left';
                 }
             }
-
-            // SEÇİM EFEKTİ
-            if (selectedBuilding && selectedBuilding.id === b.id) {
-                this.ctx.fillStyle = "rgba(255,255,255,0.4)";
-                this.ctx.fillRect(b.x, b.y, b.w, b.h);
-                this.ctx.strokeStyle = "#ff0000";
-                this.ctx.lineWidth = 1.5 / camera.zoom;
-                this.ctx.strokeRect(b.x, b.y, b.w, b.h);
-            }
         });
 
-        // OPTİMİZASYON OVERLAY
         if (optimState?.pos) {
             this._drawOptimOverlay(camera, optimState);
         }
 
         this.ctx.restore();
 
-        // HUD
         if (optimState?.pos && optimState?.data) {
             this._drawHUD(camera, optimState);
         }
@@ -138,10 +118,10 @@ export class Renderer {
         const ctx = this.ctx;
 
         const grad = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
-        grad.addColorStop(0,   '#1e6b12');
+        grad.addColorStop(0, '#1e6b12');
         grad.addColorStop(0.4, '#2d8a1f');
         grad.addColorStop(0.7, '#3a9e2a');
-        grad.addColorStop(1,   '#236e16');
+        grad.addColorStop(1, '#236e16');
         ctx.fillStyle = grad;
         ctx.fillRect(b.x, b.y, b.w, b.h);
 
@@ -202,9 +182,9 @@ export class Renderer {
             const treeSize = 28 / camera.zoom;
             const margin = 20 / camera.zoom;
             const corners = [
-                { x: b.x + margin,           y: b.y + margin },
+                { x: b.x + margin, y: b.y + margin },
                 { x: b.x + b.w - margin - treeSize, y: b.y + margin },
-                { x: b.x + margin,           y: b.y + b.h - margin - treeSize },
+                { x: b.x + margin, y: b.y + b.h - margin - treeSize },
                 { x: b.x + b.w - margin - treeSize, y: b.y + b.h - margin - treeSize },
             ];
             ctx.font = `${treeSize}px Segoe UI`;

@@ -1,5 +1,0 @@
-{
-  "denseBuildings": {"reflectionBoost": 0.15, "spilloverBoost": 0.10},
-  "openField": {"radiusBoost": 0.12},
-  "nightMode": {"sensitiveLimitPenaltyDb": 5}
-}

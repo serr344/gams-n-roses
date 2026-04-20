@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAMS N' ROSES — Analysis Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090d; --surface:#0c1018; --panel:#0f1520; --border:#1c2535;
+  --accent:#ff3c00; --gold:#ffc300; --cyan:#00e5ff; --green:#39ff14;
+  --red:#ff1744; --muted:#3a4255; --text:#c8d0e0; --dim:#505a70;
+  --purple:#bb44ff;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { 
+  background: var(--bg); color: var(--text); font-family: 'Barlow Condensed', sans-serif;
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.04) 3px, rgba(0,0,0,.04) 4px);
+  padding: 20px 0;
+}
+
+/* ── OUTER WRAPPER: card + character side by side ── */
+.result-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  position: relative;
+}
+
+/* ── GAMS CHARACTER ── */
+.gams-character {
+  position: relative;
+  flex-shrink: 0;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* slides up from below on load */
+  animation: charSlideUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
+}
+
+@keyframes charSlideUp {
+  from { opacity: 0; transform: translateY(60px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.gams-character img {
+  width: 200px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 10px 30px rgba(0,0,0,0.8));
+  /* subtle idle bob */
+  animation: bobIdle 3s ease-in-out infinite;
+}
+
+@keyframes bobIdle {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+/* ── SPEECH BUBBLE ── */
+.speech-bubble {
+  position: absolute;
+  bottom: calc(100% - 30px); /* sits above the character's shoulder */
+  left: 110%;
+  width: 240px;
+  background: var(--surface);
+  border: 2px solid var(--gold);
+  border-radius: 10px 10px 10px 0;
+  padding: 14px 16px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  box-shadow: 0 0 20px rgba(255,195,0,0.15), 0 8px 30px rgba(0,0,0,0.6);
+  animation: bubblePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.9s both;
+  z-index: 20;
+}
+
+@keyframes bubblePop {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* little triangle pointer at bottom-left of bubble */
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 18px;
+  border: 6px solid transparent;
+  border-top-color: var(--gold);
+}
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 19px;
+  border: 5px solid transparent;
+  border-top-color: var(--surface);
+  z-index: 1;
+}
+
+.bubble-name {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bubble-name::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 6px var(--gold);
+  flex-shrink: 0;
+}
+
+.bubble-text {
+  color: var(--text);
+}
+
+/* typing cursor blink on bubble text */
+.bubble-text::after {
+  content: '▌';
+  color: var(--gold);
+  animation: blink 0.9s step-end infinite;
+  margin-left: 2px;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── RESULT CARD ── */
+.result-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 36px 40px;
+  width: 660px; 
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 20px rgba(255, 195, 0, 0.1);
+  animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  z-index: 10;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.m-title { font-family:'Bebas Neue'; font-size:42px; color:var(--gold); letter-spacing:3px; margin-bottom:5px; text-shadow: 0 0 15px rgba(255,195,0,0.3); }
+.m-subtitle { font-size:14px; color:var(--dim); font-family:'Share Tech Mono'; margin-bottom:26px; text-transform: uppercase; letter-spacing: 2px;}
+
+.m-compare { 
+  display: flex; justify-content: space-between; align-items: center; 
+  background: var(--panel); padding: 22px; border-radius: 6px; 
+  border: 1px solid var(--border); margin-bottom: 24px; 
+}
+.m-box { flex: 1; display:flex; flex-direction:column; align-items:center;}
+.m-lbl { font-size:12px; color:var(--dim); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+.m-val { font-family:'Bebas Neue'; font-size:38px; line-height: 1;}
+
+.m-tags-wrap { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.m-sub-tag { 
+  font-family:'Share Tech Mono'; font-size:12px; color:var(--muted); 
+  background: rgba(255,255,255,0.03); padding: 5px 10px; border-radius: 4px; 
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.m-vs { font-size:16px; color:var(--dim); font-family:'Share Tech Mono'; padding:0 18px; font-weight: bold;}
+
+.m-percent-wrap { 
+  background: rgba(0,0,0,0.5); border: 1px solid var(--border); 
+  border-radius: 20px; height: 30px; position: relative; overflow: hidden; margin-bottom: 14px; 
+}
+.m-percent-fill { 
+  height: 100%; background: linear-gradient(90deg, var(--red), var(--gold), var(--green)); 
+  width: 0%; transition: width 2s cubic-bezier(0.2, 0.8, 0.2, 1); 
+}
+.m-percent-text { 
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; 
+  font-family: 'Share Tech Mono'; font-size: 14px; font-weight: bold; color: #fff; text-shadow: 0 1px 4px #000; 
+}
+
+/* ── GAMS COMMENT BLOCK (inside card) ── */
+.gams-comment-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  text-align: left;
+  animation: fadeIn 0.5s ease 1.2s both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+
+.gams-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--gold);
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(255,195,0,0.3);
+}
+.gams-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 60% 10%;
+}
+
+.gams-comment-text {
+  flex: 1;
+}
+.gams-comment-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.gams-comment-body {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.gams-comment-body b { color: var(--gold); }
+
+.action-btns { display: flex; gap: 15px; justify-content: center; }
+.btn { 
+  padding: 12px 25px; font-family: 'Barlow Condensed'; font-size: 16px; font-weight: bold; 
+  text-transform: uppercase; letter-spacing: 1px; border-radius: 4px; cursor: pointer; transition: all 0.2s; border: none;
+}
+.btn-retry { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-retry:hover { border-color: var(--gold); color: var(--gold); }
+.btn-home { background: var(--accent); color: #fff; }
+.btn-home:hover { background: #ff5500; transform: scale(1.05); }
+</style>
+</head>
+<body>
+
+<div class="result-wrap">
+
+  <!-- LEFT: GAMS CHARACTER -->
+  <div class="gams-character" id="gamsChar">
+    <!-- Speech bubble (hidden card version; visible character version) -->
+    <div class="speech-bubble" id="speechBubble">
+      <div class="bubble-name">Dr. GAMS</div>
+      <div class="bubble-text" id="bubbleText">Analyzing your setup...</div>
+    </div>
+    <img src="assets/gams_char.png" alt="GAMS Character" id="gamsImg">
+  </div>
+
+  <!-- RIGHT: RESULT CARD -->
+  <div class="result-container">
+    <div class="m-title">MISSION COMPLETE</div>
+    <div class="m-subtitle">GAMS Optimization Engine Has Analyzed the Results</div>
+    
+    <div class="m-compare">
+      <div class="m-box">
+        <div class="m-lbl">Your Solution</div>
+        <div class="m-val" id="resUser" style="color:var(--cyan)">Loading...</div>
+        <div class="m-tags-wrap">
+          <div class="m-sub-tag" id="resUserCoord">📍 Awaiting Location...</div>
+          <div class="m-sub-tag" id="resUserDb" style="color:var(--cyan); border-color:var(--cyan);">🔊 Tolerance: -- dB</div>
+        </div>
+      </div>
+      
+      <div class="m-vs">VS</div>
+      
+      <div class="m-box">
+        <div class="m-lbl">GAMSPy Optimization</div>
+        <div class="m-val" id="resOpt" style="color:var(--gold)">Calculating...</div>
+        <div class="m-tags-wrap">
+          <div class="m-sub-tag" id="resOptCoord">📍 Awaiting Location...</div>
+          <div class="m-sub-tag" id="resOptDb" style="color:var(--gold); border-color:var(--gold);">🔊 Tolerance: -- dB</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-percent-wrap">
+      <div class="m-percent-fill" id="resFill"></div>
+      <div class="m-percent-text" id="resPct">Score: 0%</div>
+    </div>
+
+    <!-- GAMS INLINE COMMENT (card version) -->
+    <div class="gams-comment-block">
+      <div class="gams-thumb">
+        <img src="assets/gams_char.png" alt="GAMS">
+      </div>
+      <div class="gams-comment-text">
+        <div class="gams-comment-label">🔬 Dr. GAMS — Verdict</div>
+        <div class="gams-comment-body" id="resMsg">Evaluating results, please wait...</div>
+      </div>
+    </div>
+    
+    <div class="action-btns">
+      <button class="btn btn-retry" onclick="window.location.href='stage.html'">Back to Stage & Retry</button>
+      <button class="btn btn-home" onclick="window.location.href='index.html'">Pick a New City</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // GAMS character lines per score tier
+  const GAMS_LINES = {
+    perfect: [
+      "Extraordinary. You matched my LP solution almost exactly. I didn't think a human could do this.",
+      "I ran the model 3 times to make sure. Turns out you're just... good. Respect.",
+      "The Integer Program agrees: flawless placement. I'll cite you in my next paper.",
+    ],
+    great: [
+      "Not bad. A few constraints were tighter than you realized, but the crowd numbers are solid.",
+      "You got close. My branch-and-bound found a slightly better slot configuration — but this works.",
+      "Good instincts. The LP shadow prices suggest you left about 10% capacity on the table. Next time.",
+    ],
+    average: [
+      "Hmm. Acoustically... ambitious. The buildings near sector NE were clearly not your friends.",
+      "I see what you were going for. Unfortunately, decibel physics doesn't care about intentions.",
+      "The model flagged two sub-optimal placements. I won't say which ones. Think about it.",
+    ],
+    bad: [
+      "I've seen worse. Actually no, I haven't. The hospital alone dropped your capacity by 40%.",
+      "The optimization engine returned a result. I chose not to show you how bad the gap is. You're welcome.",
+      "Technically this counts as a festival. Technically.",
+    ],
+  };
+
+  function pickLine(tier) {
+    const lines = GAMS_LINES[tier];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    // 1. User score
+    let userCrowd = parseInt(localStorage.getItem('gams_userCrowd') || '0');
+
+    // 2. Stage data
+    let stageDataRaw = localStorage.getItem('stageOptimData');
+    let userX = "?", userY = "?", userMaxDb = "?";
+    if (stageDataRaw) {
+      let sd = JSON.parse(stageDataRaw);
+      if (sd.pos) { userX = Math.round(sd.pos.x); userY = Math.round(sd.pos.y); }
+      if (sd.data?.maxDb) userMaxDb = sd.data.maxDb;
+    }
+
+    // 3. Optimal data
+    let optimalDataRaw = localStorage.getItem('gams_optimalData');
+    let optimalData = optimalDataRaw
+      ? JSON.parse(optimalDataRaw)
+      : { maxSeyirci: 15000, x: "?", y: "?", maxDb: "?" };
+    let optimalCrowd = Math.floor((optimalData.maxSeyirci || 15000) * 1.10);
+    if (userCrowd > optimalCrowd) optimalCrowd = userCrowd + 500;
+    if (optimalCrowd <= 0) optimalCrowd = 10000;
+
+    // 4. Percentage
+    const percentage = Math.max(0, Math.min(100, (userCrowd / optimalCrowd) * 100));
+
+    // 5. Render scores
+    document.getElementById('resUser').textContent = userCrowd.toLocaleString('en-US') + ' 👥';
+    document.getElementById('resOpt').textContent  = optimalCrowd.toLocaleString('en-US') + ' 👥';
+    document.getElementById('resUserCoord').textContent = `📍 [X: ${userX}, Y: ${userY}]`;
+    document.getElementById('resOptCoord').textContent  = `📍 [X: ${optimalData.x}, Y: ${optimalData.y}]`;
+    document.getElementById('resUserDb').textContent = `🔊 Capacity: ${userMaxDb} dB`;
+    document.getElementById('resOptDb').textContent  = `🔊 Capacity: ${optimalData.maxDb} dB`;
+
+    // 6. Tier logic
+    let tier, cardMsg, cardColor, bubbleLine;
+
+    if (percentage >= 95) {
+      tier      = 'perfect';
+      cardMsg   = `Outstanding! You matched the <b>GAMSPy optimal solution</b> almost exactly. The stage placement and equipment setup were near-perfect.`;
+      cardColor = 'var(--green)';
+    } else if (percentage >= 75) {
+      tier      = 'great';
+      cardMsg   = `Great work! The <b>GAMSPy Engine</b> found a configuration that fits <b>${(optimalCrowd - userCrowd).toLocaleString('en-US')} more people</b> — but your instincts were solid.`;
+      cardColor = 'var(--gold)';
+    } else if (percentage >= 40) {
+      tier      = 'average';
+      cardMsg   = `An average festival. Your <b>DB capacity</b> was well below the algorithm's ceiling. Try moving further from the buildings.`;
+      cardColor = 'var(--cyan)';
+    } else {
+      tier      = 'bad';
+      cardMsg   = `Disaster. The acoustic tolerance of your chosen location is insufficient. Building limits were hammered from the start. Read the map more carefully next time.`;
+      cardColor = 'var(--red)';
+    }
+
+    bubbleLine = pickLine(tier);
+
+    // 7. Apply card message
+    const msg = document.getElementById('resMsg');
+    msg.innerHTML    = cardMsg;
+    msg.style.color  = cardColor;
+
+    // 8. Speech bubble — typewriter effect
+    const bubbleEl = document.getElementById('bubbleText');
+    bubbleEl.textContent = '';
+    let ci = 0;
+    const typeInterval = setInterval(() => {
+      if (ci < bubbleLine.length) {
+        bubbleEl.textContent += bubbleLine[ci++];
+      } else {
+        clearInterval(typeInterval);
+        // remove blinking cursor after typing done
+        bubbleEl.style.setProperty('--cursor-done', '1');
+      }
+    }, 35);
+
+    // 9. Character expression: tilt slightly based on tier
+    const gamsImg = document.getElementById('gamsImg');
+    if (tier === 'perfect') {
+      gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(57,255,20,0.4))';
+    } else if (tier === 'bad') {
+      gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(255,23,68,0.4))';
+      gamsImg.style.transform = 'scaleX(-1)'; // face away in shame
+    } else if (tier === 'great') {
+      gamsImg.style.filter = 'drop-shadow(0 10px 30px rgba(255,195,0,0.4))';
+    }
+
+    // 10. Progress bar
+    setTimeout(() => {
+      document.getElementById('resFill').style.width = percentage.toFixed(1) + '%';
+      document.getElementById('resPct').textContent  = `System Match: ${percentage.toFixed(1)}%`;
+    }, 300);
+  });
+</script>
+</body>
+</html>

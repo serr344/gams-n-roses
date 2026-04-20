@@ -1,0 +1,30 @@
+body { 
+    margin: 0; 
+    overflow: hidden; 
+    background-color: #111; 
+    font-family: 'Segoe UI', sans-serif; 
+    color: white;
+    user-select: none;
+}
+canvas { display: block; cursor: grab; }
+canvas:active { cursor: grabbing; }
+
+#ui-panel { 
+    position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.8); 
+    padding: 15px 20px; border-radius: 8px; border: 1px solid #444; pointer-events: none;
+}
+#ui-panel h1 { margin: 0 0 10px 0; font-size: 20px; color: #ff3366; }
+#ui-panel p { margin: 5px 0; font-size: 14px; color: #ccc; }
+
+#tooltip { 
+    position: absolute; background: rgba(20, 20, 20, 0.95); padding: 12px; 
+    border-radius: 6px; border: 1px solid #666; display: none; pointer-events: none; z-index: 10;
+}
+#tooltip .b-type { font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #fff; }
+#tooltip .b-db { color: #ff9900; font-weight: bold; }
+#tooltip .b-coord { color: #888; font-size: 12px; margin-top: 5px; }
+
+#status { 
+    position: absolute; top: 20px; right: 20px; background: rgba(10, 50, 10, 0.9); 
+    border: 2px solid #00ff00; padding: 15px; border-radius: 8px; display: none;
+}

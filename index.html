@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAMS N' Roses - Şehir Planı</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Harita ekranındaki Bütçe rozeti ve buton için ufak stiller */
+        .coin-badge {
+            display: inline-block;
+            background: rgba(255, 195, 0, 0.15);
+            border: 1px solid #ffc300;
+            color: #ffc300;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 15px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .next-btn {
+            margin-top: 12px;
+            padding: 10px 18px;
+            background: #ff3c00;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 13px;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .next-btn:hover { background: #ff5500; transform: scale(1.05); }
+        .next-btn:active { transform: scale(0.95); }
+
+        /* Müzik Butonu Stili (home.html ile uyumlu) */
+        .pixel-music-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            z-index: 1000; /* Haritanın üstünde kalması için */
+            transition: all 0.2s;
+        }
+        .pixel-music-btn:hover {
+            background: rgba(0, 255, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <audio id="bg-audio" src="assets/a.mp3" loop></audio>
+    <button class="pixel-music-btn" id="musicBtn">♫ PLAY THEME</button>
+
+    <div id="ui-panel">
+        <h1>GAMS N' Roses</h1>
+        <div class="coin-badge">💰 Başlangıç Bütçesi: 1000 🪙</div>
+        
+        <p>🎸 <b>Adım 1:</b> Sahne Kurulacak Yeri Seç</p>
+        <p>🔍 <b>Yaklaş/Uzaklaş:</b> Fare Tekerleği</p>
+        <p>🖐️ <b>Gezin:</b> Tıkla ve Sürükle</p>
+    </div>
+
+    <div id="tooltip"></div>
+    
+    <div id="status">
+        <h3 style="margin:0 0 5px 0; color: #00ff00;">✓ 2. ADIMA HAZIR</h3>
+        <div id="status-text"></div>
+        <button class="next-btn" onclick="window.location.href='stage.html'">Sahne Kurulumuna Geç ➔</button>
+    </div>
+
+    <canvas id="cityCanvas"></canvas>
+
+    <script type="module" src="js/main.js"></script>
+
+    <script>
+        const audio = document.getElementById('bg-audio');
+        const musicBtn = document.getElementById('musicBtn');
+        let isMusicPlaying = false;
+        audio.volume = 0.35;
+
+        musicBtn.addEventListener('click', () => {
+            if (isMusicPlaying) {
+                audio.pause();
+                musicBtn.innerText = "♫ PLAY THEME";
+                isMusicPlaying = false;
+            } else {
+                audio.play();
+                musicBtn.innerText = "♫ MUSIC ON";
+                isMusicPlaying = true;
+            }
+        });
+    </script>
+</body>
+</html>

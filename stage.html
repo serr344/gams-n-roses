@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAMS N' ROSES — Stage Setup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#07090d;--surface:#0c1018;--panel:#0f1520;--border:#1c2535;
+            --accent:#ff3c00;--gold:#ffc300;--cyan:#00e5ff;--green:#39ff14;
+            --red:#ff1744;--purple:#bb44ff;--blue:#0088ff;--muted:#3a4255;
+            --text:#c8d0e0;--dim:#505a70;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;
+            height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none;}
+
+        /* HEADER */
+        header{display:flex;align-items:center;justify-content:space-between;
+            padding:0 24px;height:52px;background:var(--surface);
+            border-bottom:1px solid var(--border);flex-shrink:0;position:relative;}
+        header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+            background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.35;}
+        .h-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:5px;
+            color:var(--gold);text-shadow:0 0 18px rgba(255,195,0,.4);}
+        .h-logo em{color:var(--accent);font-style:normal;}
+        .h-scores{display:flex;align-items:center;gap:18px;}
+        .hs{text-align:center;}
+        .hs-lbl{font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-bottom:1px;}
+        .hs-val{font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;transition:color .3s;}
+        .hs-sep{width:1px;height:28px;background:var(--border);}
+        
+        /* MUSIC BUTTON STYLE */
+        .pixel-music-btn {
+            background: transparent;
+            border: 1px solid var(--green);
+            color: var(--green);
+            padding: 5px 12px;
+            cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-right: 15px;
+            transition: all 0.2s;
+            border-radius: 2px;
+        }
+        .pixel-music-btn:hover {
+            background: rgba(57, 255, 20, 0.1);
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
+        }
+
+        .back-btn{background:transparent;border:1px solid var(--border);color:var(--dim);
+            font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;
+            padding:5px 14px;cursor:pointer;text-transform:uppercase;transition:all .2s;}
+        .back-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+        /* MAIN */
+        .main{flex:1;display:grid;grid-template-columns:255px 1fr 275px;min-height:0;}
+
+        /* PALETTE */
+        .palette{background:var(--panel);border-right:1px solid var(--border);
+            display:flex;flex-direction:column;overflow:hidden;}
+        .panel-hd{font-size:9px;letter-spacing:3px;color:var(--dim);
+            padding:11px 14px 9px;border-bottom:1px solid var(--border);
+            display:flex;align-items:center;gap:7px;text-transform:uppercase;}
+        .panel-hd::before{content:'';width:5px;height:5px;border-radius:50%;
+            background:var(--accent);box-shadow:0 0 7px var(--accent);flex-shrink:0;}
+
+        .items-list{display:flex;flex-direction:column;gap:5px;padding:8px 10px;overflow-y:auto;flex:1;}
+        .item-card{border:1px solid var(--border);background:rgba(255,255,255,.018);
+            padding:9px 11px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;border-radius:2px;}
+        .item-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,var(--accent));}
+        .item-card:hover{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.1);}
+        .item-card.selected{background:rgba(255,255,255,.065);border-color:var(--c,var(--accent));
+            box-shadow:0 0 14px rgba(255,60,0,.12);}
+        .ic-top{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+        .ic-icon{font-size:18px;line-height:1;}
+        .ic-name{font-size:13px;font-weight:700;letter-spacing:.5px;}
+        .ic-stat{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--c,var(--dim));margin-left:auto;}
+        .ic-desc{font-size:10px;color:var(--dim);line-height:1.35;}
+
+        .sel-hint{padding:9px 12px;margin:6px 10px 10px;border:1px dashed var(--border);
+            font-size:11px;color:var(--dim);text-align:center;line-height:1.5;border-radius:2px;}
+        .sel-hint b{color:var(--gold);}
+        .sel-hint.active{border-color:var(--gold);background:rgba(255,195,0,.04);}
+
+        /* STAGE WRAP */
+        .stage-wrap{position:relative;background:var(--bg);overflow:hidden;}
+        .stage-wrap::after{content:'';position:absolute;inset:0;
+            background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 4px);
+            pointer-events:none;z-index:0;}
+        #stageCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;}
+
+        /* SLOTS */
+        .slot{
+            position:absolute;width:50px;height:50px;
+            border:1.5px dashed var(--border);background:rgba(10,14,22,.8);
+            backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;
+            flex-direction:column;gap:2px;cursor:pointer;transition:all .18s;z-index:10;
+            border-radius:4px;font-size:9px;letter-spacing:1px;color:var(--dim);}
+        .slot:hover{border-color:var(--gold);color:var(--gold);background:rgba(255,195,0,.06);
+            border-style:solid;transform:scale(1.08);}
+        .slot.filled{border-style:solid;border-color:var(--sc,var(--accent));
+            background:rgba(255,60,0,.07);color:var(--text);box-shadow:0 0 10px rgba(255,60,0,.12);}
+        .slot.filled:hover{transform:scale(1.08);filter:brightness(1.15);}
+        .slot-icon{font-size:18px;line-height:1;}
+        .slot-lbl{font-size:8px;letter-spacing:1px;}
+        .slot.filled .slot-lbl{color:var(--sc,var(--accent));}
+
+        /* PICKER */
+        .picker{position:fixed;z-index:200;background:var(--surface);
+            border:1px solid var(--border);box-shadow:0 10px 50px rgba(0,0,0,.75);
+            padding:10px;width:230px;animation:popIn .14s ease;border-radius:3px;}
+        @keyframes popIn{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
+        .picker.hidden{display:none;}
+        .picker-title{font-size:9px;letter-spacing:2px;color:var(--dim);
+            padding:0 4px 7px;border-bottom:1px solid var(--border);margin-bottom:7px;text-transform:uppercase;}
+        .pi{display:flex;align-items:center;gap:9px;padding:7px 6px;cursor:pointer;
+            border:1px solid transparent;transition:all .1s;border-radius:2px;margin-bottom:3px;}
+        .pi:hover{background:rgba(255,255,255,.05);border-color:var(--border);}
+        .pi-icon{font-size:17px;}
+        .pi-name{font-size:13px;font-weight:600;}
+        .pi-stat{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);}
+        .p-remove{display:flex;align-items:center;justify-content:center;gap:6px;
+            padding:7px;cursor:pointer;border-top:1px solid var(--border);margin-top:5px;
+            color:var(--red);font-size:12px;transition:background .1s;border-radius:2px;}
+        .p-remove:hover{background:rgba(255,23,68,.1);}
+
+        /* SCORE PANEL */
+        .score-panel{background:var(--panel);border-left:1px solid var(--border);
+            display:flex;flex-direction:column;overflow:hidden;}
+        .stat-block{padding:12px 14px;border-bottom:1px solid var(--border);}
+        .stat-lbl{font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-bottom:5px;}
+        .stat-big{font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:1;
+            letter-spacing:2px;transition:color .3s;}
+        .stat-unit{font-size:11px;letter-spacing:2px;color:var(--dim);}
+        .stat-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);margin-top:3px;}
+        .db-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:9px;overflow:hidden;}
+        .db-bar{height:100%;border-radius:2px;transition:width .5s,background .5s;}
+
+        .bld-list{flex:1;overflow-y:auto;padding:4px 0;}
+        .bld-list::-webkit-scrollbar{width:2px;}
+        .bld-list::-webkit-scrollbar-thumb{background:var(--border);}
+        .bld-row{padding:6px 14px;border-bottom:1px solid rgba(28,37,53,.5);
+            display:grid;grid-template-columns:1fr auto;gap:1px;align-items:center;transition:background .1s;}
+        .bld-row:hover{background:rgba(255,255,255,.018);}
+        .bld-row.violated{background:rgba(255,23,68,.05);border-left:2px solid var(--red);}
+        .bld-name{font-size:11px;font-weight:600;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px;}
+        .bld-dist{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim);margin-top:1px;}
+        .bld-recv{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;text-align:right;}
+        .bld-limit{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim);text-align:right;}
+
+        /* corner labels on canvas */
+        .c-tag{position:absolute;font-family:'Share Tech Mono',monospace;font-size:9px;
+            color:var(--muted);letter-spacing:1px;pointer-events:none;z-index:2;}
+        .c-tag.tl{top:8px;left:8px;}.c-tag.tr{top:8px;right:8px;}
+        .c-tag.br{bottom:8px;right:8px;}
+    </style>
+</head>
+<body>
+
+<header>
+    <button class="back-btn" onclick="history.back()">← Back to Map</button>
+    <div class="h-logo">GAMS N' <em>ROSES</em> — STAGE SETUP</div>
+    
+    <div class="h-scores">
+        <audio id="bg-audio" src="assets/a.mp3" loop></audio>
+        <button class="pixel-music-btn" id="musicBtn">♫ PLAY THEME</button>
+
+        <div class="hs">
+            <div class="hs-lbl">Budget</div>
+            <div class="hs-val" id="hCoins" style="color:var(--gold)">1000 🪙</div>
+        </div>
+        <div class="hs-sep"></div>
+        
+        <div class="hs">
+            <div class="hs-lbl">Audience dB</div>
+            <div class="hs-val" id="hAud" style="color:var(--green)">—</div>
+        </div>
+        <div class="hs-sep"></div>
+
+        <div class="hs">
+            <div class="hs-lbl">Crowd</div>
+            <div class="hs-val" id="hCrowd" style="color:var(--cyan)">0 👥</div>
+        </div>
+        <div class="hs-sep"></div>
+        
+        <div class="hs">
+            <div class="hs-lbl">Violations</div>
+            <div class="hs-val" id="hViol" style="color:var(--green)">0</div>
+        </div>
+    </div>
+    
+    <button class="back-btn" style="border-color: var(--green); color: var(--green); margin-left: 15px;" onclick="showResults()">View Results →</button>
+</header>
+
+<div class="main">
+    <aside class="palette">
+        <div class="panel-hd">Select Equipment</div>
+        <div class="items-list" id="itemsList"></div>
+        <div class="sel-hint" id="selHint">Select equipment, then click a <b>slot around the stage</b>.</div>
+    </aside>
+
+    <div class="stage-wrap" id="stageWrap">
+        <canvas id="stageCanvas"></canvas>
+        <div class="c-tag tl">STAGE · TOP VIEW</div>
+        <div class="c-tag tr" id="ctTR"></div>
+        <div class="c-tag br">BASE 92 dB @ 1m</div>
+    </div>
+
+    <aside class="score-panel">
+        <div class="stat-block">
+            <div class="stat-lbl">Audience Sound Level</div>
+            <div class="stat-big" id="audBig" style="color:var(--green)">—</div>
+            <div class="stat-unit">dB · 50m Ahead</div>
+            <div class="stat-sub" id="audSub">Place an item to start calculations</div>
+            <div class="db-bar-wrap"><div class="db-bar" id="audBar" style="width:0%"></div></div>
+        </div>
+        <div class="panel-hd" style="border-top:none;">Building Constraints</div>
+        <div class="bld-list" id="buildingList"></div>
+    </aside>
+</div>
+
+<div class="picker hidden" id="picker">
+    <div class="picker-title" id="pickerTitle">Slot Selection</div>
+    <div id="pickerItems"></div>
+    <div class="p-remove hidden" id="pickerRemove" onclick="removeItem()">✕ &nbsp; Remove</div>
+</div>
+
+<script src="js/stage.js"></script>
+
+<script>
+    const audio = document.getElementById('bg-audio');
+    const musicBtn = document.getElementById('musicBtn');
+    let isMusicPlaying = false;
+    audio.volume = 0.35;
+
+    musicBtn.addEventListener('click', () => {
+        if (isMusicPlaying) {
+            audio.pause();
+            musicBtn.innerText = "♫ PLAY THEME";
+            isMusicPlaying = false;
+        } else {
+            audio.play().catch(err => console.error("Audio playback error:", err));
+            musicBtn.innerText = "♫ MUSIC ON";
+            isMusicPlaying = true;
+        }
+    });
+</script>
+<script src="js/gams_bridge.js"></script>
+
+</body>
+</html>

@@ -1,7 +1,0 @@
-[
-  {"id": "hospital", "name": "Hospital", "visibleLimitDb": 40, "sensitivityMultiplier": 1.5, "complaintWeight": 10},
-  {"id": "library", "name": "Library", "visibleLimitDb": 35, "sensitivityMultiplier": 1.6, "complaintWeight": 9},
-  {"id": "school", "name": "School", "visibleLimitDb": 45, "sensitivityMultiplier": 1.3, "complaintWeight": 8},
-  {"id": "residential", "name": "Residential Apartment", "visibleLimitDb": 50, "sensitivityMultiplier": 1.2, "complaintWeight": 7},
-  {"id": "office", "name": "Office Building", "visibleLimitDb": 55, "sensitivityMultiplier": 1.0, "complaintWeight": 5}
-]

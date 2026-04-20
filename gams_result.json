@@ -1,0 +1,19 @@
+{
+  "maxSeyirci": 8899,
+  "x": 2400,
+  "y": 2400,
+  "maxDb": 75.33,
+  "placement": {
+    "NW": null,
+    "N": null,
+    "NE": "barrier",
+    "W": "reflector",
+    "E": null,
+    "SW": null,
+    "S": "line_array",
+    "SE": null
+  },
+  "violations": 1,
+  "spent": 900,
+  "method": "Greedy Heuristic"
+}

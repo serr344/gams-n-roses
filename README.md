@@ -54,7 +54,7 @@ pip install flask flask-cors gamspy
 ## ▶️ How to Run
 ### 1. Start the Backend Server
 ```bash
-python api_server.py
+py api_server.py
 ```
 Note: The server will be running on: http://127.0.0.1:5000
 

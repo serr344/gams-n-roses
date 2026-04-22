@@ -208,7 +208,6 @@
     <div class="stage-wrap" id="stageWrap">
         <canvas id="stageCanvas"></canvas>
         <div class="c-tag tl">STAGE · TOP VIEW</div>
-        <div class="c-tag tr" id="ctTR"></div>
         <div class="c-tag br">BASE 92 dB @ 1m</div>
     </div>
 
@@ -234,21 +233,38 @@
 <script src="js/stage.js"></script>
 
 <script>
-    const audio = document.getElementById('bg-audio');
+    const audio    = document.getElementById('bg-audio');
     const musicBtn = document.getElementById('musicBtn');
     let isMusicPlaying = false;
     audio.volume = 0.35;
+
+    const savedTime  = parseFloat(sessionStorage.getItem('musicTime') || '0');
+    const wasMusicOn = sessionStorage.getItem('musicPlaying') === 'true';
+    if (savedTime > 0) audio.currentTime = savedTime;
+    if (wasMusicOn) {
+        audio.play().then(() => {
+            isMusicPlaying = true;
+            musicBtn.innerText = "♫ MUSIC ON";
+        }).catch(() => {});
+    }
 
     musicBtn.addEventListener('click', () => {
         if (isMusicPlaying) {
             audio.pause();
             musicBtn.innerText = "♫ PLAY THEME";
             isMusicPlaying = false;
+            sessionStorage.setItem('musicPlaying', 'false');
         } else {
-            audio.play().catch(err => console.error("Audio playback error:", err));
+            audio.play().catch(() => {});
             musicBtn.innerText = "♫ MUSIC ON";
             isMusicPlaying = true;
+            sessionStorage.setItem('musicPlaying', 'true');
         }
+    });
+
+    window.addEventListener('beforeunload', () => {
+        sessionStorage.setItem('musicTime',    String(audio.currentTime));
+        sessionStorage.setItem('musicPlaying', isMusicPlaying ? 'true' : 'false');
     });
 </script>
 

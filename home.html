@@ -303,16 +303,34 @@
 
         audio.volume = 0.35;
 
+        // Resume from saved position
+        const savedTime  = parseFloat(sessionStorage.getItem('musicTime') || '0');
+        const wasMusicOn = sessionStorage.getItem('musicPlaying') === 'true';
+        if (savedTime > 0) audio.currentTime = savedTime;
+        if (wasMusicOn) {
+            audio.play().then(() => {
+                playing = true;
+                musicBtn.textContent = "♪ MUSIC ON";
+            }).catch(() => {});
+        }
+
         musicBtn.addEventListener('click', () => {
             if (playing) {
                 audio.pause();
                 musicBtn.textContent = "♪ PLAY THEME";
                 playing = false;
+                sessionStorage.setItem('musicPlaying', 'false');
             } else {
                 audio.play().catch(() => {});
                 musicBtn.textContent = "♪ MUSIC ON";
                 playing = true;
+                sessionStorage.setItem('musicPlaying', 'true');
             }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('musicTime',    String(audio.currentTime));
+            sessionStorage.setItem('musicPlaying', playing ? 'true' : 'false');
         });
 
         document.getElementById('howToBtn').onclick    = () => modal.style.display = 'flex';

@@ -1,8 +1,5 @@
-import argparse
 import json
 import math
-import sys
-import textwrap
 
 import numpy as np
 
@@ -419,128 +416,10 @@ def run_greedy_optimization(stage_data: dict) -> dict:
     return placement
 
 
-RESET = "\033[0m"
-BOLD = "\033[1m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-RED = "\033[91m"
-CYAN = "\033[96m"
-MAGENTA = "\033[95m"
-DIM = "\033[2m"
-
-
-def db_color(db: float) -> str:
-    if db <= 70:
-        return GREEN
-    if db <= 85:
-        return YELLOW
-    return RED
-
-
-def print_report(stage_data: dict, placement: dict, method: str) -> dict:
-    buildings = stage_data["data"]["nearby"]
-    stage_pos = stage_data["pos"]
-
-    adb = audience_db(placement)
-    violations = count_violations(buildings, stage_pos, placement)
-    crowd = calculate_crowd(buildings, stage_pos, placement)
-    spent = total_cost(placement)
-
-    print()
-    print(f"{BOLD}{'═' * 62}{RESET}")
-    print(f"{BOLD}{MAGENTA}   🎸  GAMS N' ROSES — Optimizasyon Raporu{RESET}")
-    print(f"{DIM}   Yöntem: {method}{RESET}")
-    print(f"{BOLD}{'═' * 62}{RESET}")
-
-    print(f"\n{BOLD}📍 Sahne Konumu:{RESET}  X={stage_pos['x']:.0f}, Y={stage_pos['y']:.0f}")
-    print(f"{BOLD}💰 Bütçe:{RESET}         {BUDGET} 🪙 → {spent} 🪙 harcandı ({BUDGET - spent} 🪙 kaldı)")
-
-    print(f"\n{BOLD}── Yerleştirilen Ekipmanlar ──{RESET}")
-    for slot_id in SLOT_IDS:
-        item = placement[slot_id]
-        if item:
-            angle = SLOT_DEFS[slot_id]
-            contrib_aud = item_contribution(item, angle, AUD_ANGLE)
-            print(
-                f"  {CYAN}[{slot_id:2s}]{RESET}  {item['icon']} {item['name']:<18}  "
-                f"💰{item['cost']:>3}🪙   izleyici: {contrib_aud:+.1f} dB"
-            )
-        else:
-            print(f"  {DIM}[{slot_id:2s}]  — boş —{RESET}")
-
-    print(f"\n{BOLD}── Akustik Sonuçlar ──{RESET}")
-    print(f"  {BOLD}İzleyici dB:{RESET}   {db_color(adb)}{adb:.1f} dB{RESET}  (50m @ Güney)")
-
-    if violations == 0:
-        viol_str = f"{GREEN}✓ İhlal yok{RESET}"
-    else:
-        viol_str = f"{RED}⚠ {violations} bina ihlali{RESET}"
-
-    print(f"  {BOLD}Bina İhlalleri:{RESET} {viol_str}")
-    print(f"  {BOLD}Tahmini Kalabalık:{RESET} {crowd:>8,} 👥")
-
-    print(f"\n{BOLD}── Bina Kısıt Tablosu ──{RESET}")
-    print(f"  {'Bina Tipi':<28} {'Limit':>6} {'Alınan':>7} {'Durum':>12}")
-    print(f"  {'─' * 28} {'─' * 6} {'─' * 7} {'─' * 12}")
-
-    for b in sorted(buildings, key=lambda b: b["dbLimit"]):
-        received = db_received_at(b, stage_pos, placement)
-        violated = received > b["dbLimit"]
-        margin = b["dbLimit"] - received
-        name = b["type"][:27]
-        status = (
-            f"{RED}⚠ +{abs(margin):.1f}{RESET}"
-            if violated
-            else f"{GREEN}✓ −{abs(margin):.1f}{RESET}"
-        )
-        col = RED if violated else RESET
-        print(f"  {name:<28} {b['dbLimit']:>5.0f}dB {col}{received:>6.1f}dB{RESET}  {status}")
-
-    print(f"\n{BOLD}{'═' * 62}{RESET}")
-
-    score_pct = min(100, (crowd / max(1, crowd + 5000)) * 100) if crowd > 0 else 0
-    bar_len = int(score_pct / 5)
-    bar = GREEN + "█" * bar_len + DIM + "░" * (20 - bar_len) + RESET
-
-    print(f"\n  {bar}  {score_pct:.0f}%")
-    print(f"\n  {BOLD}{YELLOW}► Tahmini kalabalık: {crowd:,} 👥{RESET}")
-    print(f"  {BOLD}► İzleyici dB:       {adb:.1f} dB{RESET}")
-    print(f"\n{DIM}  Sonuçları result.html ile karşılaştırın!{RESET}\n")
-
-    return {
-        "placement": {sid: (item["id"] if item else None) for sid, item in placement.items()},
-        "audience_db": round(adb, 2),
-        "violations": violations,
-        "estimated_crowd": crowd,
-        "spent": spent,
-        "remaining_budget": BUDGET - spent,
-        "stage_pos": stage_pos,
-        "method": method,
-    }
-
-
-def export_result_json(report: dict, output_path: str = "gams_result.json") -> None:
-    out = {
-        "maxSeyirci": report["estimated_crowd"],
-        "x": report["stage_pos"]["x"],
-        "y": report["stage_pos"]["y"],
-        "maxDb": report["audience_db"],
-        "placement": report["placement"],
-        "violations": report["violations"],
-        "spent": report["spent"],
-        "method": report["method"],
-    }
-
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(out, f, ensure_ascii=False, indent=2)
-
-    print(f"  📄 JSON çıktısı kaydedildi: {output_path}")
-    print("     → Bu dosyayı result ekranında import ederek karşılaştırabilirsiniz.\n")
-
 
 def optimize(stage_data: dict, prefer_gamspy: bool = True) -> dict:
     """
-    Dışarıdan çağrılabilir API.
+    Public API — called by api_server.py.
 
     Returns:
         {
@@ -562,98 +441,22 @@ def optimize(stage_data: dict, prefer_gamspy: bool = True) -> dict:
 
     buildings = stage_data["data"]["nearby"]
     stage_pos = stage_data["pos"]
-    adb = audience_db(placement)
+    adb       = audience_db(placement)
     violations = count_violations(buildings, stage_pos, placement)
-    crowd = calculate_crowd(buildings, stage_pos, placement)
-    spent = total_cost(placement)
+    crowd     = calculate_crowd(buildings, stage_pos, placement)
+    spent     = total_cost(placement)
 
     return {
-        "placement": {sid: (item["id"] if item else None) for sid, item in placement.items()},
-        "audience_db": round(adb, 2),
-        "violations": violations,
-        "estimated_crowd": crowd,
-        "spent": spent,
+        "placement":        {sid: (item["id"] if item else None) for sid, item in placement.items()},
+        "audience_db":      round(adb, 2),
+        "violations":       violations,
+        "estimated_crowd":  crowd,
+        "spent":            spent,
         "remaining_budget": BUDGET - spent,
-        "stage_pos": stage_pos,
-        "method": method,
-        "maxSeyirci": crowd,
-        "x": stage_pos["x"],
-        "y": stage_pos["y"],
-        "maxDb": round(adb, 2),
+        "stage_pos":        stage_pos,
+        "method":           method,
+        "maxSeyirci":       crowd,
+        "x":                stage_pos["x"],
+        "y":                stage_pos["y"],
+        "maxDb":            round(adb, 2),
     }
-
-
-def main() -> dict:
-    parser = argparse.ArgumentParser(
-        description="GAMS N' Roses — GAMSPy Sahne Optimizasyon Motoru",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=textwrap.dedent(
-            """
-            Örnekler:
-              python optimize_stage.py
-              python optimize_stage.py --input stage_data.json
-              python optimize_stage.py --method greedy
-              python optimize_stage.py --output result.json
-            """
-        ),
-    )
-    parser.add_argument(
-        "--input",
-        default=None,
-        help="Tarayıcıdan export edilen stageOptimData JSON dosyası",
-    )
-    parser.add_argument(
-        "--output",
-        default="gams_result.json",
-        help="Çıktı JSON dosyası adı",
-    )
-    parser.add_argument(
-        "--method",
-        choices=["gamspy", "greedy", "auto"],
-        default="auto",
-        help="Optimizasyon yöntemi",
-    )
-    args = parser.parse_args()
-
-    if args.input:
-        with open(args.input, encoding="utf-8") as f:
-            stage_data = json.load(f)
-        print(f"\n{GREEN}✓ Veri yüklendi:{RESET} {args.input}")
-    else:
-        stage_data = EXAMPLE_STAGE_DATA
-        print(f"\n{YELLOW}⚠ --input belirtilmedi, örnek veri kullanılıyor.{RESET}")
-
-    buildings = stage_data["data"]["nearby"]
-    print(
-        f"  → {len(buildings)} bina kısıtı, sahne @ "
-        f"({stage_data['pos']['x']:.0f}, {stage_data['pos']['y']:.0f})"
-    )
-
-    use_gamspy = args.method == "gamspy" or (args.method == "auto" and GAMSPY_AVAILABLE)
-
-    if use_gamspy:
-        print(f"\n{CYAN}🔧 GAMSPy MIP Modeli çözülüyor...{RESET}")
-        try:
-            placement = run_gamspy_optimization(stage_data)
-            method = "GAMSPy MIP (Tam Optimizasyon)"
-        except Exception as e:
-            print(f"{YELLOW}⚠ GAMSPy hatası: {e}{RESET}")
-            print(f"{YELLOW}  Greedy yöntemine geçiliyor...{RESET}")
-            placement = run_greedy_optimization(stage_data)
-            method = "Greedy Heuristic (GAMSPy fallback)"
-    else:
-        if not GAMSPY_AVAILABLE and args.method == "gamspy":
-            print(f"{RED}✗ GAMSPy kurulu değil! `pip install gamspy` çalıştırın.{RESET}")
-            sys.exit(1)
-
-        print(f"\n{CYAN}🔧 Greedy heuristic çalıştırılıyor...{RESET}")
-        placement = run_greedy_optimization(stage_data)
-        method = "Greedy Heuristic"
-
-    report = print_report(stage_data, placement, method)
-    export_result_json(report, args.output)
-    return report
-
-
-if __name__ == "__main__":
-    main()

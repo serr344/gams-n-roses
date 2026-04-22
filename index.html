@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GAMS N' Roses - Şehir Planı</title>
+    <title>GAMS N' Roses - City Map</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* Harita ekranındaki Bütçe rozeti ve buton için ufak stiller */
         .coin-badge {
             display: inline-block;
             background: rgba(255, 195, 0, 0.15);
@@ -34,7 +33,6 @@
         .next-btn:hover { background: #ff5500; transform: scale(1.05); }
         .next-btn:active { transform: scale(0.95); }
 
-        /* Müzik Butonu Stili (home.html ile uyumlu) */
         .pixel-music-btn {
             position: absolute;
             top: 20px;
@@ -46,33 +44,66 @@
             cursor: pointer;
             font-family: 'Courier New', Courier, monospace;
             font-weight: bold;
-            z-index: 1000; /* Haritanın üstünde kalması için */
+            z-index: 1000;
             transition: all 0.2s;
         }
-        .pixel-music-btn:hover {
-            background: rgba(0, 255, 0, 0.1);
+        .pixel-music-btn:hover { background: rgba(0, 255, 0, 0.1); }
+
+        /* TOP TOAST NOTIFICATION */
+        #top-toast {
+            position: fixed;
+            top: -90px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: rgba(10, 12, 20, 0.97);
+            border: 1px solid #ff1744;
+            border-top: 3px solid #ff1744;
+            color: #fff;
+            padding: 14px 32px;
+            border-radius: 0 0 10px 10px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            box-shadow: 0 6px 30px rgba(255, 23, 68, 0.4);
+            transition: top 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+            min-width: 340px;
+            pointer-events: none;
+        }
+        #top-toast.show { top: 0; }
+        #top-toast .toast-title {
+            color: #ff1744;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        #top-toast .toast-body {
+            color: #c8d0e0;
+            font-size: 12px;
+            font-weight: normal;
+            letter-spacing: 0.4px;
         }
     </style>
 </head>
 <body>
     <audio id="bg-audio" src="assets/a.mp3" loop></audio>
-    <button class="pixel-music-btn" id="musicBtn">♫ PLAY THEME</button>
+    <button class="pixel-music-btn" id="musicBtn">&#9835; PLAY THEME</button>
 
     <div id="ui-panel">
         <h1>GAMS N' Roses</h1>
-        <div class="coin-badge">💰 Başlangıç Bütçesi: 1200 🪙</div>
-        
-        <p>🎸 <b>Adım 1:</b> Sahne Kurulacak Yeri Seç</p>
-        <p>🔍 <b>Yaklaş/Uzaklaş:</b> Fare Tekerleği</p>
-        <p>🖐️ <b>Gezin:</b> Tıkla ve Sürükle</p>
+        <div class="coin-badge">&#128176; Starting Budget: 1200 &#127993;</div>
+        <p>&#127928; <b>Step 1:</b> Pick a Stage Location</p>
+        <p>&#128269; <b>Zoom:</b> Mouse Wheel</p>
+        <p>&#128400; <b>Pan:</b> Click &amp; Drag</p>
     </div>
 
     <div id="tooltip"></div>
-    
-    <div id="status">
-        <h3 style="margin:0 0 5px 0; color: #00ff00;">✓ 2. ADIMA HAZIR</h3>
-        <div id="status-text"></div>
-        <button class="next-btn" onclick="window.location.href='stage.html'">Sahne Kurulumuna Geç ➔</button>
+
+    <!-- TOP TOAST -->
+    <div id="top-toast">
+        <div class="toast-title" id="toast-title-text">&#9940; Cannot Place Stage Here</div>
+        <div class="toast-body" id="toast-body-text">Stages cannot be built on buildings. Please select an open area.</div>
     </div>
 
     <canvas id="cityCanvas"></canvas>
@@ -80,22 +111,51 @@
     <script type="module" src="js/main.js"></script>
 
     <script>
-        const audio = document.getElementById('bg-audio');
+        // ── MUSIC (persistent across pages via sessionStorage) ──
+        const audio    = document.getElementById('bg-audio');
         const musicBtn = document.getElementById('musicBtn');
         let isMusicPlaying = false;
         audio.volume = 0.35;
 
+        const savedTime     = parseFloat(sessionStorage.getItem('musicTime') || '0');
+        const wasMusicOn    = sessionStorage.getItem('musicPlaying') === 'true';
+        if (savedTime > 0) audio.currentTime = savedTime;
+        if (wasMusicOn) {
+            audio.play().then(() => {
+                isMusicPlaying = true;
+                musicBtn.textContent = '\u266B MUSIC ON';
+            }).catch(() => {});
+        }
+
         musicBtn.addEventListener('click', () => {
             if (isMusicPlaying) {
                 audio.pause();
-                musicBtn.innerText = "♫ PLAY THEME";
+                musicBtn.textContent = '\u266B PLAY THEME';
                 isMusicPlaying = false;
+                sessionStorage.setItem('musicPlaying', 'false');
             } else {
-                audio.play();
-                musicBtn.innerText = "♫ MUSIC ON";
+                audio.play().catch(() => {});
+                musicBtn.textContent = '\u266B MUSIC ON';
                 isMusicPlaying = true;
+                sessionStorage.setItem('musicPlaying', 'true');
             }
         });
+
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('musicTime',    String(audio.currentTime));
+            sessionStorage.setItem('musicPlaying', isMusicPlaying ? 'true' : 'false');
+        });
+
+        // ── TOAST API (called from main.js via window.showToast) ──
+        let _toastTimer = null;
+        window.showToast = function(title, body) {
+            document.getElementById('toast-title-text').textContent = '\u26D4 ' + title;
+            document.getElementById('toast-body-text').textContent  = body;
+            const el = document.getElementById('top-toast');
+            el.classList.add('show');
+            clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+        };
     </script>
 </body>
 </html>

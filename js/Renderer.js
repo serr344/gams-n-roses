@@ -272,7 +272,7 @@ export class Renderer {
 
         ctx.fillStyle = '#ffcc00';
         ctx.font = 'bold 13px Segoe UI';
-        ctx.fillText('🎸 GAMSPY Konser Optimizasyonu', bx + 10, by + 22);
+        ctx.fillText('🎸Location Potential Analysis', bx + 10, by + 22);
 
         const dbColor = data.maxDb > 100 ? '#ff4444' : data.maxDb > 80 ? '#ffaa00' : '#44ff99';
         ctx.fillStyle = dbColor;
@@ -281,8 +281,8 @@ export class Renderer {
 
         ctx.fillStyle = '#888';
         ctx.font = '11px Segoe UI';
-        ctx.fillText(`${data.nearby?.length ?? 0} bina etki alanında`, bx + 130, by + 50);
-        ctx.fillText('r = 600 birim', bx + 130, by + 65);
+        ctx.fillText(`${data.nearby?.length ?? 0} buildings in range`, bx + 130, by + 50);
+        ctx.fillText('r = 600 units', bx + 130, by + 65);
 
         if (data.limitingBuilding) {
             ctx.strokeStyle = 'rgba(255,100,100,0.4)';
@@ -294,7 +294,7 @@ export class Renderer {
 
             ctx.fillStyle = '#ff8888';
             ctx.font = 'bold 11px Segoe UI';
-            ctx.fillText('⚠ En kısıtlayıcı:', bx + 10, by + 92);
+            ctx.fillText('⚠ Most restrictive:', bx + 10, by + 92);
             ctx.fillStyle = '#fff';
             ctx.font = '11px Segoe UI';
             const name = data.limitingBuilding.type.length > 22
@@ -311,7 +311,7 @@ export class Renderer {
         if (data.status === 'no_constraints') {
             ctx.fillStyle = '#44ff99';
             ctx.font = '12px Segoe UI';
-            ctx.fillText('Çevrede bina yok — serbest!', bx + 10, by + 88);
+            ctx.fillText('No nearby buildings — free zone!', bx + 10, by + 88);
         }
     }
 }

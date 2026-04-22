@@ -5,17 +5,51 @@ import { InputManager } from './InputManager.js';
 
 const canvas     = document.getElementById('cityCanvas');
 const tooltip    = document.getElementById('tooltip');
-const statusDiv  = document.getElementById('status');
-const statusText = document.getElementById('status-text');
 
 const OPTIM_RADIUS = 600;
 
-const cityModel = new CityModel();
-const camera    = new Camera(window.innerWidth, window.innerHeight);
-const renderer  = new Renderer(canvas);
+// Camera & renderer start immediately (no freeze)
+const camera   = new Camera(window.innerWidth, window.innerHeight);
+const renderer = new Renderer(canvas);
+renderer.resize(window.innerWidth, window.innerHeight);
 
+let cityModel  = null;
+let inputMgr   = null;
 let optimState = null;
+let isReady    = false;
 
+// ── RENDER LOOP ──
+function renderLoop() {
+    if (cityModel && isReady) {
+        renderer.draw(cityModel, camera, optimState);
+    } else {
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#07090d';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(255,195,0,0.7)';
+        ctx.font = 'bold 18px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Generating city map…', canvas.width / 2, canvas.height / 2);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+    }
+    requestAnimationFrame(renderLoop);
+}
+renderLoop();
+
+// ── DEFERRED CITY GENERATION ──
+requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            cityModel = new CityModel();
+            isReady   = true;
+            inputMgr  = new InputManager(canvas, camera, cityModel, handleUIState);
+        }, 50);
+    });
+});
+
+// ── OPTIMIZATION MATH ──
 function runOptimization(wx, wy) {
     const nearby = cityModel.buildings.reduce((acc, b) => {
         const d = Math.hypot(b.centerX - wx, b.centerY - wy);
@@ -33,12 +67,7 @@ function runOptimization(wx, wy) {
     }, []);
 
     if (!nearby.length) {
-        return {
-            maxDb: 130.0,
-            status: 'no_constraints',
-            nearby: [],
-            limitingBuilding: null
-        };
+        return { maxDb: 130.0, status: 'no_constraints', nearby: [], limitingBuilding: null };
     }
 
     const limiting = nearby.reduce(
@@ -46,20 +75,13 @@ function runOptimization(wx, wy) {
         nearby[0]
     );
 
-    return {
-        maxDb: Math.round(limiting.allowed * 10) / 10,
-        status: 'optimal',
-        nearby,
-        limitingBuilding: limiting
-    };
+    return { maxDb: Math.round(limiting.allowed * 10) / 10, status: 'optimal', nearby, limitingBuilding: limiting };
 }
 
 function isBlockedByBuilding(building, worldPos) {
     if (!building || !worldPos) return false;
-
     const padX = Math.min(18, building.w * 0.22);
     const padY = Math.min(18, building.h * 0.22);
-
     return (
         worldPos.x >= building.x + padX &&
         worldPos.x <= building.x + building.w - padX &&
@@ -68,99 +90,65 @@ function isBlockedByBuilding(building, worldPos) {
     );
 }
 
+// ── UI STATE HANDLER ──
 function handleUIState(action, building, mouseX, mouseY, isDragging, worldPos) {
+    if (!isReady) return;
+
     if (action === 'hover') {
         if (isDragging) return;
-
-        statusDiv.style.display = 'none';
 
         if (building) {
             tooltip.style.cssText = `display:block;left:${mouseX + 15}px;top:${mouseY + 15}px`;
             tooltip.innerHTML = `
                 <div class="b-type">${building.type}</div>
-                <div class="b-db">Tolerans: ${building.dbLimit} dB</div>
-                <div class="b-coord">Koordinat: [${Math.round(building.centerX)}, ${Math.round(building.centerY)}]</div>`;
+                <div class="b-db">Tolerance: ${building.dbLimit} dB</div>
+                <div class="b-coord">Coord: [${Math.round(building.centerX)}, ${Math.round(building.centerY)}]</div>`;
         } else {
             tooltip.style.display = 'none';
         }
 
         if (worldPos) {
-            optimState = {
-                pos: worldPos,
-                data: runOptimization(worldPos.x, worldPos.y)
-            };
+            optimState = { pos: worldPos, data: runOptimization(worldPos.x, worldPos.y) };
         }
 
     } else if (action === 'leave') {
         tooltip.style.display = 'none';
         optimState = null;
-        statusDiv.style.display = 'none';
 
     } else if (action === 'click' && worldPos) {
         const clickedOnBuilding = isBlockedByBuilding(building, worldPos);
-        const clickedOnRoad = cityModel.isRoad(worldPos.x, worldPos.y);
+        const clickedOnRoad     = cityModel.isRoad(worldPos.x, worldPos.y);
 
         if (clickedOnBuilding) {
             tooltip.style.display = 'none';
-            statusDiv.style.display = 'block';
-            statusText.innerHTML = `
-                <b style="color:#ff4d4d;">Geçersiz seçim</b><br>
-                Binaların üstüne sahne kurulamaz.<br>
-                <i style="font-size:12px;color:#aaa;">Lütfen boş bir alan seç.</i>`;
+            if (window.showToast) {
+                window.showToast(
+                    'Cannot Place Stage Here',
+                    'Stages cannot be built on top of buildings. Please select an open area.'
+                );
+            }
             return;
         }
 
         if (clickedOnRoad) {
             tooltip.style.display = 'none';
-            statusDiv.style.display = 'block';
-            statusText.innerHTML = `
-                <b style="color:#ff4d4d;">Geçersiz seçim</b><br>
-                Yolların üstüne sahne kurulamaz.<br>
-                <i style="font-size:12px;color:#aaa;">Lütfen boş bir alan seç.</i>`;
+            if (window.showToast) {
+                window.showToast(
+                    'Cannot Place Stage Here',
+                    'Stages cannot be built on roads. Please select an open area.'
+                );
+            }
             return;
         }
 
+        // Valid placement → save and navigate
         const data = runOptimization(worldPos.x, worldPos.y);
-
-        localStorage.setItem(
-            'stageOptimData',
-            JSON.stringify({ pos: worldPos, data })
-        );
-
-        localStorage.setItem(
-            'gams_optimalData',
-            JSON.stringify(cityModel.findOptimalStageLocation())
-        );
-
-        statusDiv.style.display = 'block';
-        statusText.innerHTML = `
-            <b>Seçilen Alan:</b> Boş Alan<br>
-            <b>Koordinat:</b> X:${Math.round(worldPos.x)}, Y:${Math.round(worldPos.y)}<br>
-            <b>Maksimum İzinli Ses:</b> ${data.maxDb} dB<br>
-            <i style="font-size:12px;color:#aaa;">Stage sayfası açılıyor...</i>`;
+        localStorage.setItem('stageOptimData', JSON.stringify({ pos: worldPos, data }));
 
         window.location.href = 'stage.html';
     }
 }
 
-function renderLoop() {
-    renderer.draw(cityModel, camera, optimState);
-    requestAnimationFrame(renderLoop);
-}
-
-new InputManager(canvas, camera, cityModel, handleUIState, () => {});
-
 window.addEventListener('resize', () => {
     renderer.resize(window.innerWidth, window.innerHeight);
-});
-
-renderer.resize(window.innerWidth, window.innerHeight);
-renderLoop();
-
-requestAnimationFrame(() => setTimeout(() => cityModel.findOptimalStageLocation(), 0));
-
-document.querySelector('.next-btn')?.addEventListener('click', e => {
-    e.preventDefault();
-    localStorage.setItem('gams_optimalData', JSON.stringify(cityModel.findOptimalStageLocation()));
-    window.location.href = 'stage.html';
 });
